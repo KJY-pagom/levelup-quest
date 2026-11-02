@@ -1,6 +1,6 @@
 // 앱 파일은 네트워크 우선(최신 반영), 실패 시 캐시. 폰트 등 외부 파일은 캐시 우선.
-const CACHE = 'levelup-quest-v1';
-const CORE = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
+const CACHE = 'levelup-quest-v2';
+const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-180.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));

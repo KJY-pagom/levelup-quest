@@ -248,7 +248,11 @@ history: [{ date, questId, questName, stat, value?, expGained, statGained, isPen
 - 하단 탭은 시안대로 3개. 승급 시험은 상태창 EXP 바/랭크 배지를 탭해서, 설정은 상태창 헤더의 톱니 아이콘으로 진입
 
 ### 홈 화면 추가 (2026-11-02 추가)
-- 앱 로직은 계속 `index.html` 하나에 둠. 홈 화면 설치용 보조 파일만 별도로 둠: `manifest.webmanifest`, `sw.js`, `icons/`(192·512·180 PNG)
+- 앱 로직은 계속 `index.html` 하나에 둠. 홈 화면 설치용 보조 파일만 별도로 둠: `manifest.json`, `sw.js`, 아이콘 PNG
+- 앱 아이콘: Claude Design에서 받은 원본(달리는 실루엣 + 계단 + 상승 화살표)을 `icon-1024.png`(1024×1024)로 프로젝트 루트에 두고, 이를 기준으로 `icon-192.png`, `icon-512.png`, `icon-180.png`(애플 터치 아이콘) 생성
+- `manifest.json`: name, short_name, icons(192/512), theme_color `#05070F`, background_color `#05070F`, display `"standalone"`
+- `<head>`: `<link rel="manifest" href="manifest.json">`, `<link rel="apple-touch-icon" href="icon-180.png">`, `<meta name="theme-color" content="#05070F">`
+- 아이콘 파일이 없으면 임시 단색 사각형 아이콘을 만들어 두고 알릴 것
 - 홈 화면 아이콘으로 실행하면 주소창 없는 전체 화면(standalone), 세로 고정, 배경·상태바는 다크 네이비
 - 서비스 워커가 앱 파일을 캐시해서 인터넷 없이도 열림 (폰트 CDN은 한 번 받은 뒤부터 캐시)
 - 서비스 워커는 http(s)에서만 동작. `file://`로 열면 홈 화면 추가만 되고 오프라인 캐시는 없음
