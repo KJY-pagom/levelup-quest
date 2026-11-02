@@ -1,0 +1,1585 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#05070F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="레벨업 퀘스트">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>레벨업 퀘스트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+/* ===== Design Tokens (SPEC 7-1, tokens.css) ===== */
+:root {
+  --lq-bg: #05070F;
+  --lq-bg-elev: #0B1A33;
+  --lq-surface: rgba(16, 48, 100, 0.38);
+  --lq-surface-strong: rgba(10, 28, 60, 0.85);
+  --lq-line: rgba(127, 227, 255, 0.45);
+  --lq-line-soft: rgba(127, 227, 255, 0.18);
+  --lq-primary: #3FA9FF;
+  --lq-accent: #7FE3FF;
+  --lq-text: #DCEBFF;
+  --lq-text-sub: #8FA6C8;
+  --lq-text-mute: #5A6E8E;
+  --lq-danger: #FF3B4E;
+  --lq-danger-bg: #2A0610;
+
+  --lq-grade-e: #8A94A6;
+  --lq-grade-d: #3DDC84;
+  --lq-grade-c: #3FA9FF;
+  --lq-grade-b: #A66BFF;
+  --lq-grade-a: #FF9A3C;
+  --lq-grade-s: #FFC940;
+  --lq-grade-s-gradient: linear-gradient(135deg, #FF4D5E, #FFC940);
+
+  --lq-stat-hp: #FF5A6E;
+  --lq-stat-int: #4DA3FF;
+  --lq-stat-men: #B07CFF;
+  --lq-stat-str: #FF9F43;
+
+  --lq-font-display: 'Chakra Petch', 'Pretendard Variable', sans-serif;
+  --lq-font-body: 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --lq-font-mono: 'JetBrains Mono', monospace;
+  --lq-fs-display: 56px;
+  --lq-fs-h1: 26px;
+  --lq-fs-h2: 20px;
+  --lq-fs-body: 15px;
+  --lq-fs-caption: 13px;
+  --lq-fs-label: 11px;
+
+  --lq-sp-1: 4px; --lq-sp-2: 8px; --lq-sp-3: 12px; --lq-sp-4: 16px;
+  --lq-sp-5: 20px; --lq-sp-6: 24px; --lq-sp-8: 32px;
+
+  --lq-radius-0: 0px; --lq-radius-1: 2px; --lq-radius-2: 4px;
+
+  --lq-glow-panel: 0 0 20px rgba(63,169,255,.28), inset 0 0 28px rgba(63,169,255,.12);
+  --lq-glow-text: 0 0 12px rgba(63,169,255,.8);
+  --lq-glow-danger: 0 0 22px rgba(255,59,78,.45), inset 0 0 28px rgba(255,59,78,.15);
+  --lq-bracket: 14px;
+
+  --tabbar-h: 64px;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--lq-bg);
+  background-image:
+    linear-gradient(rgba(63,169,255,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(63,169,255,.05) 1px, transparent 1px),
+    radial-gradient(ellipse at 50% -10%, #0B1A33 0%, var(--lq-bg) 60%);
+  background-size: 28px 28px, 28px 28px, 100% 100%;
+  background-attachment: fixed;
+  color: var(--lq-text);
+  font-family: var(--lq-font-body);
+  font-size: var(--lq-fs-body);
+  line-height: 1.45;
+  min-height: 100dvh;
+  overscroll-behavior-y: none;
+}
+body::after { /* 스캔라인 */
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 999;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px);
+  opacity: .35;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+[hidden] { display: none !important; }
+
+#app {
+  max-width: 480px; margin: 0 auto; min-height: 100dvh;
+  padding: calc(env(safe-area-inset-top) + var(--lq-sp-3)) var(--lq-sp-4) calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--lq-sp-6));
+}
+
+/* ===== 공통 ===== */
+.mono { font-family: var(--lq-font-mono); font-size: var(--lq-fs-label); letter-spacing: .18em; text-transform: uppercase; color: var(--lq-accent); }
+.disp { font-family: var(--lq-font-display); }
+.sub { color: var(--lq-text-sub); font-size: var(--lq-fs-caption); }
+.mute { color: var(--lq-text-mute); font-size: var(--lq-fs-caption); }
+.glow { text-shadow: var(--lq-glow-text); }
+
+.panel {
+  position: relative; border: 1px solid var(--lq-line-soft); background: var(--lq-surface);
+  border-radius: var(--lq-radius-1); padding: var(--lq-sp-4); margin-bottom: var(--lq-sp-3);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.bracket {
+  --c: var(--lq-accent); --l: var(--lq-bracket);
+  border-color: var(--lq-line); box-shadow: var(--lq-glow-panel);
+  background:
+    linear-gradient(var(--c), var(--c)) left top / var(--l) 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) left top / 2px var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) right top / var(--l) 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) right top / 2px var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) left bottom / var(--l) 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) left bottom / 2px var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) right bottom / var(--l) 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) right bottom / 2px var(--l) no-repeat,
+    var(--lq-surface);
+}
+.bracket.danger { --c: var(--lq-danger); border-color: rgba(255,59,78,.5); box-shadow: var(--lq-glow-danger); background-color: var(--lq-danger-bg); }
+.phead { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--lq-sp-3); }
+.phead h3 { margin: 0; font-size: var(--lq-fs-body); font-weight: 700; }
+.link { color: var(--lq-accent); font-size: var(--lq-fs-caption); background: none; border: 0; padding: 0; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 44px; padding: 0 var(--lq-sp-4); border-radius: var(--lq-radius-1);
+  border: 1px solid var(--lq-line); background: rgba(63,169,255,.12); color: var(--lq-text);
+  font-weight: 600; font-size: var(--lq-fs-body);
+}
+.btn.primary { background: var(--lq-primary); border-color: var(--lq-accent); color: #04101F; box-shadow: 0 0 16px rgba(63,169,255,.45); }
+.btn.danger { background: var(--lq-danger); border-color: #FF7A88; color: #fff; box-shadow: 0 0 16px rgba(255,59,78,.4); }
+.btn.ghost { background: transparent; }
+.btn:disabled { opacity: .4; box-shadow: none; cursor: not-allowed; }
+.btn.block { width: 100%; }
+.btnrow { display: flex; gap: var(--lq-sp-2); margin-top: var(--lq-sp-4); }
+.btnrow .btn { flex: 1; }
+
+.bar { height: 8px; background: rgba(127,227,255,.08); border: 1px solid var(--lq-line-soft); position: relative; overflow: hidden; }
+.bar > i { position: absolute; inset: 0 auto 0 0; background: var(--lq-primary); box-shadow: 0 0 10px currentColor; transition: width .5s ease; }
+
+.gbadge {
+  display: inline-grid; place-items: center; width: 28px; height: 28px; flex: none;
+  font-family: var(--lq-font-display); font-weight: 700; font-size: 15px;
+  border: 1.5px solid var(--g); color: var(--g); background: rgba(0,0,0,.25);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--g) 45%, transparent);
+}
+.g-E { --g: var(--lq-grade-e); } .g-D { --g: var(--lq-grade-d); } .g-C { --g: var(--lq-grade-c); }
+.g-B { --g: var(--lq-grade-b); } .g-A { --g: var(--lq-grade-a); } .g-S { --g: var(--lq-grade-s); }
+.gbadge.g-S { border-image: var(--lq-grade-s-gradient) 1; color: #FFC940; }
+.sbadge { display: inline-block; padding: 1px 6px; font-family: var(--lq-font-display); font-weight: 700; font-size: 11px; letter-spacing: .04em; color: var(--s); border: 1px solid color-mix(in srgb, var(--s) 60%, transparent); background: color-mix(in srgb, var(--s) 12%, transparent); }
+.s-HP { --s: var(--lq-stat-hp); } .s-INT { --s: var(--lq-stat-int); } .s-MEN { --s: var(--lq-stat-men); } .s-STR { --s: var(--lq-stat-str); }
+.tag { display: inline-block; padding: 1px 6px; font-size: 11px; color: var(--lq-text-sub); border: 1px solid var(--lq-line-soft); }
+
+/* ===== 페널티 배너 ===== */
+#penaltyBanner {
+  position: sticky; top: 0; z-index: 50; margin: 0 calc(-1 * var(--lq-sp-4)) var(--lq-sp-3);
+  padding: 10px var(--lq-sp-4); background: var(--lq-danger-bg); border-bottom: 1px solid var(--lq-danger);
+  box-shadow: var(--lq-glow-danger); color: #FFD6DA; display: flex; align-items: center; gap: 10px; width: calc(100% + 2 * var(--lq-sp-4));
+  border-left: 0; border-right: 0; border-top: 0; text-align: left; font-size: var(--lq-fs-caption);
+  animation: pulseDanger 1.6s ease-in-out infinite;
+}
+#penaltyBanner b { color: var(--lq-danger); font-family: var(--lq-font-mono); letter-spacing: .1em; }
+#penaltyBanner .time { margin-left: auto; font-family: var(--lq-font-mono); color: #fff; }
+@keyframes pulseDanger { 50% { box-shadow: 0 0 6px rgba(255,59,78,.2); } }
+
+/* ===== 상태창 ===== */
+.shead { text-align: center; position: relative; margin: var(--lq-sp-2) 0 var(--lq-sp-4); }
+.shead h1 { margin: 2px 0 0; font-size: var(--lq-fs-h2); font-weight: 700; letter-spacing: .05em; }
+.iconbtn { position: absolute; top: 4px; width: 40px; height: 40px; border: 1px solid var(--lq-line-soft); background: var(--lq-surface); display: grid; place-items: center; color: var(--lq-accent); }
+.iconbtn.right { right: 0; } .iconbtn svg { width: 20px; height: 20px; }
+
+.lvrow { display: flex; gap: var(--lq-sp-4); align-items: stretch; }
+.lvbox { display: flex; flex-direction: column; padding-right: var(--lq-sp-4); border-right: 1px solid var(--lq-line-soft); }
+.lvnum { display: flex; align-items: center; gap: 10px; }
+.lvnum .n { font-family: var(--lq-font-display); font-size: var(--lq-fs-display); font-weight: 700; line-height: 1; text-shadow: var(--lq-glow-text); }
+.rankbadge {
+  width: 40px; height: 48px; border: 1.5px solid var(--g); color: var(--g); background: rgba(0,0,0,.3);
+  display: grid; place-items: center; align-content: center; gap: 0; padding: 0;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--g) 40%, transparent);
+}
+.rankbadge b { font-family: var(--lq-font-display); font-size: 22px; line-height: 1; }
+.rankbadge small { font-size: 9px; letter-spacing: .1em; font-family: var(--lq-font-mono); }
+.rankbadge.g-S { border-image: var(--lq-grade-s-gradient) 1; }
+.namebox { min-width: 0; flex: 1; }
+.namebox .name { font-size: var(--lq-fs-h2); font-weight: 700; margin: 2px 0 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.titlechip { display: inline-flex; align-items: center; gap: 6px; font-size: var(--lq-fs-caption); color: var(--lq-text-sub); }
+.titlechip button { border: 1px solid var(--lq-line); background: rgba(63,169,255,.1); color: var(--lq-accent); padding: 2px 8px; font-size: var(--lq-fs-caption); }
+
+.exp { margin-top: var(--lq-sp-4); }
+.exp .top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.exp .val { font-family: var(--lq-font-display); font-size: var(--lq-fs-caption); color: var(--lq-text-sub); }
+.exp .val .max { color: var(--lq-grade-s); font-weight: 700; font-size: 16px; margin-right: 6px; text-shadow: 0 0 10px rgba(255,201,64,.6); }
+.exp .bar { height: 10px; }
+.exp .bar > i { background: linear-gradient(90deg, var(--lq-primary), var(--lq-accent)); color: var(--lq-primary); }
+.exp.wait .bar > i { background: linear-gradient(90deg, var(--lq-primary), var(--lq-grade-s)); color: var(--lq-grade-s); animation: shimmer 2s linear infinite; }
+@keyframes shimmer { 50% { filter: brightness(1.35); } }
+.exp .foot { display: flex; justify-content: space-between; margin-top: 6px; font-size: 12px; color: var(--lq-text-mute); }
+.exp .foot button { background: none; border: 0; padding: 0; color: var(--lq-accent); font-size: 12px; }
+.exp.wait .foot button { color: var(--lq-grade-s); font-weight: 700; }
+
+.statrow { display: grid; grid-template-columns: 92px 44px 1fr 44px; align-items: center; gap: var(--lq-sp-2); padding: 7px 0; }
+.statrow .lab b { font-family: var(--lq-font-display); font-size: 20px; color: var(--s); text-shadow: 0 0 8px color-mix(in srgb, var(--s) 60%, transparent); }
+.statrow .lab small { color: var(--lq-text-sub); font-size: 11px; margin-left: 4px; }
+.statrow .v { font-family: var(--lq-font-display); font-size: 20px; font-weight: 700; text-align: right; }
+.statrow .bar { height: 6px; }
+.statrow .bar > i { background: var(--s); color: var(--s); }
+.statrow .gain { font-family: var(--lq-font-display); font-size: 12px; color: var(--s); text-align: right; }
+
+.bodygrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--lq-sp-2); }
+.bodygrid .k { font-size: 11px; color: var(--lq-text-mute); }
+.bodygrid .v { font-family: var(--lq-font-display); font-size: 19px; font-weight: 700; }
+.bodygrid .v small { font-size: 11px; color: var(--lq-text-sub); margin-left: 1px; }
+.down { color: var(--lq-accent); } .up { color: var(--lq-stat-hp); }
+
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: var(--lq-sp-3); }
+.tiles .panel { margin: 0; }
+.big { font-family: var(--lq-font-display); font-size: 28px; font-weight: 700; line-height: 1.1; }
+.big small { font-size: 14px; font-family: var(--lq-font-body); color: var(--lq-text-sub); margin-left: 2px; }
+.segs { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-top: 8px; }
+.segs i { height: 4px; background: rgba(127,227,255,.12); }
+.segs i.on { background: var(--lq-primary); box-shadow: 0 0 6px var(--lq-primary); }
+
+/* ===== 탭바 ===== */
+#tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom); display: flex; justify-content: center;
+  background: rgba(5,7,15,.92); border-top: 1px solid var(--lq-line-soft); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+#tabbar .in { display: flex; width: 100%; max-width: 480px; }
+#tabbar button { flex: 1; background: none; border: 0; color: var(--lq-text-mute); font-size: 14px; font-weight: 600; position: relative; }
+#tabbar button.on { color: var(--lq-accent); text-shadow: var(--lq-glow-text); }
+#tabbar button.on::before { content: ""; position: absolute; top: 0; left: 35%; right: 35%; height: 2px; background: var(--lq-accent); box-shadow: 0 0 8px var(--lq-accent); }
+
+/* ===== 퀘스트 ===== */
+.vtitle { display: flex; align-items: flex-end; justify-content: space-between; margin: var(--lq-sp-2) 0 var(--lq-sp-4); }
+.vtitle h1 { margin: 2px 0 0; font-size: var(--lq-fs-h2); }
+.seg { display: flex; border: 1px solid var(--lq-line-soft); margin-bottom: var(--lq-sp-4); background: var(--lq-surface); }
+.seg button { flex: 1; min-height: 40px; background: none; border: 0; color: var(--lq-text-sub); font-weight: 600; }
+.seg button.on { background: rgba(63,169,255,.18); color: var(--lq-accent); box-shadow: inset 0 -2px 0 var(--lq-accent); }
+.qcard { display: flex; align-items: center; gap: var(--lq-sp-3); padding: var(--lq-sp-3); margin-bottom: var(--lq-sp-2); border: 1px solid var(--lq-line-soft); background: var(--lq-surface); }
+.qcard.done { opacity: .55; }
+.qcard.done .qname { text-decoration: line-through; text-decoration-color: var(--lq-text-mute); }
+.qmain { flex: 1; min-width: 0; background: none; border: 0; padding: 0; text-align: left; }
+.qname { font-weight: 600; margin-bottom: 4px; overflow-wrap: anywhere; }
+.qmeta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: var(--lq-text-sub); }
+.qmeta .exp-r { font-family: var(--lq-font-display); color: var(--lq-accent); }
+.qcheck { width: 44px; height: 44px; flex: none; border: 1.5px solid var(--lq-line); background: rgba(0,0,0,.25); color: transparent; font-size: 20px; display: grid; place-items: center; }
+.qcheck.on { background: var(--lq-primary); border-color: var(--lq-accent); color: #04101F; box-shadow: 0 0 12px rgba(63,169,255,.6); }
+.qcheck.auto { border-style: dashed; color: var(--lq-text-mute); font-size: 11px; }
+.qcheck svg { width: 22px; height: 22px; }
+.section-h { margin: var(--lq-sp-5) 0 var(--lq-sp-2); }
+.empty { text-align: center; color: var(--lq-text-mute); padding: var(--lq-sp-8) 0; font-size: var(--lq-fs-caption); }
+
+/* ===== 기록 ===== */
+.hday { margin-bottom: var(--lq-sp-4); }
+.hday h4 { margin: 0 0 var(--lq-sp-2); font-family: var(--lq-font-display); font-weight: 600; color: var(--lq-accent); display: flex; justify-content: space-between; }
+.hitem { display: flex; gap: var(--lq-sp-3); align-items: center; padding: 10px var(--lq-sp-3); border: 1px solid var(--lq-line-soft); border-top: 0; background: var(--lq-surface); }
+.hitem:first-of-type { border-top: 1px solid var(--lq-line-soft); }
+.hitem .t { flex: 1; min-width: 0; }
+.hitem .r { text-align: right; font-family: var(--lq-font-display); font-size: 13px; }
+.hitem img { width: 40px; height: 40px; object-fit: cover; border: 1px solid var(--lq-line-soft); }
+.hitem.pen { background: rgba(42,6,16,.7); border-color: rgba(255,59,78,.35); }
+.hitem.pen .r { color: var(--lq-danger); }
+.hitem.rk .r { color: var(--lq-grade-s); }
+
+/* ===== 레이어 (시트·모달) ===== */
+.layer { position: fixed; inset: 0; z-index: 100; display: flex; justify-content: center; }
+.layer .backdrop { position: absolute; inset: 0; background: rgba(2,4,10,.72); animation: fadeIn .2s ease; }
+.layer.sheet { align-items: flex-end; }
+.layer.sheet .box {
+  position: relative; width: 100%; max-width: 480px; max-height: 92dvh; overflow-y: auto;
+  background: var(--lq-surface-strong); border: 1px solid var(--lq-line); border-bottom: 0; box-shadow: var(--lq-glow-panel);
+  padding: var(--lq-sp-5) var(--lq-sp-4) calc(var(--lq-sp-6) + env(safe-area-inset-bottom));
+  animation: up .25s ease; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+}
+.layer.modal { align-items: center; padding: var(--lq-sp-4); }
+.layer.modal .box { position: relative; width: 100%; max-width: 400px; max-height: 92dvh; overflow-y: auto; padding: var(--lq-sp-6) var(--lq-sp-5); animation: pop .3s ease; background-color: var(--lq-surface-strong); }
+.box .x { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; background: none; border: 0; color: var(--lq-text-sub); font-size: 22px; }
+.box h2 { margin: 2px 0 var(--lq-sp-4); font-size: var(--lq-fs-h1); text-shadow: var(--lq-glow-text); }
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes up { from { transform: translateY(40px); opacity: 0; } }
+@keyframes pop { from { transform: scale(.92); opacity: 0; } }
+
+.field { margin-bottom: var(--lq-sp-4); }
+.field > label { display: block; font-size: var(--lq-fs-caption); color: var(--lq-text-sub); margin-bottom: 6px; }
+.inp { width: 100%; min-height: 44px; padding: 0 var(--lq-sp-3); background: rgba(0,0,0,.35); border: 1px solid var(--lq-line); border-radius: var(--lq-radius-1); color: var(--lq-text); font-size: 16px; }
+.inp:focus { outline: none; border-color: var(--lq-accent); box-shadow: 0 0 10px rgba(127,227,255,.35); }
+.inpwrap { position: relative; } .inpwrap .unit { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--lq-text-mute); font-size: var(--lq-fs-caption); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--lq-sp-3); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips label { position: relative; }
+.chips input { position: absolute; opacity: 0; pointer-events: none; }
+.chips span { display: inline-grid; place-items: center; min-width: 44px; min-height: 40px; padding: 0 12px; border: 1px solid var(--lq-line-soft); background: rgba(0,0,0,.25); color: var(--lq-text-sub); font-weight: 600; }
+.chips input:checked + span { border-color: var(--g, var(--s, var(--lq-accent))); color: var(--g, var(--s, var(--lq-accent))); background: rgba(63,169,255,.14); box-shadow: 0 0 8px rgba(63,169,255,.3); }
+.chips input:focus-visible + span { outline: 2px solid var(--lq-accent); }
+
+/* 완료 / 레벨업 / 랭크업 팝업 */
+.sysmsg { text-align: center; }
+.sysmsg .rew { font-family: var(--lq-font-display); font-size: 18px; margin: var(--lq-sp-3) 0; }
+.sysmsg .rew b { color: var(--lq-accent); }
+.lvline { display: inline-block; margin-top: var(--lq-sp-2); padding: 6px 12px; border: 1px solid var(--lq-line); color: var(--lq-accent); font-family: var(--lq-font-display); font-weight: 700; }
+.waitline { color: var(--lq-grade-s); font-size: var(--lq-fs-caption); margin-top: var(--lq-sp-2); }
+.thumb { margin: var(--lq-sp-3) auto 0; width: 120px; height: 120px; object-fit: cover; border: 1px solid var(--lq-line); display: block; }
+.levelup .box { text-align: center; overflow: hidden; }
+.levelup .ring { position: absolute; inset: -40%; background: conic-gradient(from 0deg, transparent, rgba(127,227,255,.25), transparent 30%); animation: spin 3s linear infinite; pointer-events: none; }
+.levelup .lv { font-family: var(--lq-font-display); font-size: var(--lq-fs-display); font-weight: 700; color: #fff; text-shadow: 0 0 18px var(--lq-primary), 0 0 40px var(--lq-primary); animation: glowPulse 1.2s ease-in-out infinite; position: relative; }
+.levelup .from { font-family: var(--lq-font-display); color: var(--lq-text-sub); font-size: 18px; position: relative; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes glowPulse { 50% { text-shadow: 0 0 8px var(--lq-primary), 0 0 20px var(--lq-primary); } }
+.rankup .badges { display: flex; align-items: center; justify-content: center; gap: var(--lq-sp-5); margin: var(--lq-sp-5) 0; position: relative; height: 110px; }
+.rankup .rankbadge { width: 74px; height: 88px; }
+.rankup .rankbadge b { font-size: 44px; }
+.rankup .old { animation: fadeOld 1.6s ease forwards; }
+.rankup .new { animation: growNew 1.6s ease forwards; transform: scale(.4); opacity: 0; }
+.rankup .arrow { color: var(--lq-accent); font-size: 26px; }
+@keyframes fadeOld { 0% { opacity: 1; } 60% { opacity: 1; } 100% { opacity: .25; filter: grayscale(1); } }
+@keyframes growNew { 0%, 40% { transform: scale(.4); opacity: 0; } 70% { transform: scale(1.25); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+.rankup .title { font-family: var(--lq-font-display); font-size: 44px; font-weight: 700; color: var(--lq-grade-s); text-shadow: 0 0 20px rgba(255,201,64,.7); letter-spacing: .08em; }
+.condlist { list-style: none; padding: 0; margin: var(--lq-sp-3) 0 0; text-align: left; font-size: var(--lq-fs-caption); }
+.condlist li { padding: 4px 0; color: var(--lq-text-sub); }
+.condlist li.ok { color: var(--lq-text); } .condlist li.ok::before { content: "✓ "; color: var(--lq-grade-d); } .condlist li:not(.ok)::before { content: "· "; }
+
+/* 페널티 화면 */
+.penalty .box { text-align: center; }
+.penalty h2 { color: var(--lq-danger); text-shadow: 0 0 14px rgba(255,59,78,.7); }
+.penalty .mono { color: var(--lq-danger); }
+.penalty .pq { font-size: 22px; font-weight: 700; margin: var(--lq-sp-3) 0; }
+.penalty .left { font-family: var(--lq-font-mono); font-size: 28px; color: #fff; margin: var(--lq-sp-2) 0; }
+.penalty .warn { font-size: var(--lq-fs-caption); color: #FFB3BB; border: 1px solid rgba(255,59,78,.4); padding: var(--lq-sp-3); text-align: left; }
+
+/* 승급 시험 */
+.promohead { text-align: center; margin-bottom: var(--lq-sp-4); }
+.promohead .badges { display: flex; justify-content: center; align-items: center; gap: var(--lq-sp-4); margin: var(--lq-sp-3) 0; }
+.promohead .cnt { font-family: var(--lq-font-display); font-size: 22px; font-weight: 700; }
+.promohead .cnt b { color: var(--lq-accent); font-size: 30px; }
+.cond { display: flex; gap: var(--lq-sp-3); align-items: center; padding: var(--lq-sp-3); border: 1px solid var(--lq-line-soft); background: rgba(0,0,0,.2); margin-bottom: var(--lq-sp-2); }
+.cond.ok { border-color: var(--lq-accent); box-shadow: 0 0 12px rgba(127,227,255,.35), inset 0 0 14px rgba(127,227,255,.1); }
+.cond .ic { width: 44px; height: 44px; flex: none; display: grid; place-items: center; font-family: var(--lq-font-mono); font-size: 11px; font-weight: 600; letter-spacing: .05em; border: 1px solid var(--lq-line); color: var(--lq-accent); background: rgba(63,169,255,.1); }
+.cond .body { flex: 1; min-width: 0; }
+.cond .row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.cond .row b { font-size: 14px; }
+.cond .row span { font-family: var(--lq-font-display); font-size: 13px; color: var(--lq-text-sub); white-space: nowrap; }
+.cond .bar > i { background: var(--lq-primary); color: var(--lq-primary); }
+.cond.ok .bar > i { background: var(--lq-accent); }
+.cond .chk { width: 24px; height: 24px; flex: none; border: 1px solid var(--lq-line-soft); display: grid; place-items: center; color: transparent; }
+.cond.ok .chk { background: var(--lq-accent); color: #04101F; border-color: var(--lq-accent); }
+.cond .note { font-size: 11px; color: var(--lq-text-mute); margin-top: 4px; }
+
+/* 신체 기록 그래프 */
+.chart { width: 100%; height: auto; display: block; margin-top: var(--lq-sp-2); }
+
+/* 공유 */
+.sharewrap { display: flex; justify-content: center; margin: var(--lq-sp-3) 0; }
+.sharewrap canvas { max-width: 100%; max-height: 52dvh; width: auto; height: auto; border: 1px solid var(--lq-line); box-shadow: var(--lq-glow-panel); }
+
+/* 설정 */
+.setrow { display: flex; gap: var(--lq-sp-2); }
+.setrow .inp { flex: 1; }
+.debug { border: 1px dashed var(--lq-grade-a); padding: var(--lq-sp-3); margin-top: var(--lq-sp-5); }
+.debug .mono { color: var(--lq-grade-a); }
+.debug .btn { margin-top: var(--lq-sp-2); }
+
+#toast {
+  position: fixed; left: 50%; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 16px); transform: translateX(-50%) translateY(20px);
+  z-index: 200; max-width: 90vw; padding: 10px 16px; background: var(--lq-surface-strong); border: 1px solid var(--lq-line); box-shadow: var(--lq-glow-panel);
+  font-size: var(--lq-fs-caption); opacity: 0; pointer-events: none; transition: .25s ease;
+}
+#toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } .rankup .new { transform: none; opacity: 1; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <button id="penaltyBanner" data-act="openPenalty" hidden></button>
+  <main id="view"></main>
+</div>
+<nav id="tabbar"><div class="in">
+  <button data-act="tab" data-tab="status">상태창</button>
+  <button data-act="tab" data-tab="quests">퀘스트</button>
+  <button data-act="tab" data-tab="history">기록</button>
+</div></nav>
+<div id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
+<input type="file" id="importInput" accept="application/json,.json" hidden>
+
+<script>
+'use strict';
+/* =========================================================
+   Rules — 게임 규칙 상수 (SPEC 3장)
+   ========================================================= */
+const APP_NAME = '레벨업 퀘스트';
+const STORE_KEY = 'levelup-quest-v1';
+const RANKS = ['E', 'D', 'C', 'B', 'A', 'S'];
+const GRADES = ['E', 'D', 'C', 'B', 'A', 'S'];
+const GRADE_EXP = { E: 10, D: 20, C: 40, B: 80, A: 150, S: 300 };
+const GRADE_STAT = { E: 1, D: 1, C: 2, B: 3, A: 4, S: 5 };
+const STATS = ['HP', 'INT', 'MEN', 'STR'];
+const STAT_KO = { HP: '체력', INT: '지력', MEN: '정신력', STR: '근력' };
+const STAT_COLOR = { HP: '#FF5A6E', INT: '#4DA3FF', MEN: '#B07CFF', STR: '#FF9F43' };
+const GRADE_COLOR = { E: '#8A94A6', D: '#3DDC84', C: '#3FA9FF', B: '#A66BFF', A: '#FF9A3C', S: '#FFC940' };
+const TYPE_KO = { daily: '일일', weekly: '주간', once: '돌발' };
+const GATES = [10, 20, 30, 40, 50]; // 인덱스 = 해당 구간에서 승급해야 하는 현재 랭크 인덱스
+// 칭호는 임시 목록 (SPEC 7-1)
+const TITLES = [[1, '각성자'], [5, '견습 수행자'], [10, '습관의 개척자'], [20, '꾸준한 수행자'], [30, '한계 돌파자'], [40, '규율의 지배자'], [50, '자신을 다스리는 자']];
+const PENALTIES = [
+  { name: '스쿼트 50회', stat: 'STR' },
+  { name: '플랭크 3분', stat: 'STR' },
+  { name: '계단 10층 오르기', stat: 'HP' },
+  { name: '버피 30회', stat: 'STR' },
+  { name: '줄넘기 500회', stat: 'HP' },
+];
+// 인덱스 = 현재 랭크 인덱스 (E→D, D→C, ...)
+const PROMO = [
+  { to: 'D', need: 2, run: { total: 20 }, str: 10, weight: { kind: 'logDays', days: 14 }, streak: 7, study: 5 },
+  { to: 'C', need: 3, run: { total: 50 }, str: 25, weight: { kind: 'lossOrKeep', kg: 2, days: 14 }, streak: 14, study: 10 },
+  { to: 'B', need: 3, run: { total: 100, single: 10 }, str: 50, weight: { kind: 'lossOrKeep', kg: 4, days: 30 }, streak: 21, study: 20 },
+  { to: 'A', need: 4, run: { total: 200, single: 21 }, str: 100, weight: { kind: 'target', keepDays: 30 }, streak: 30, study: 40 },
+  { to: 'S', need: 5, run: { total: 400 }, str: 200, weight: { kind: 'targetKeep', days: 30 }, streak: 60, study: 80 },
+];
+const needExp = lv => Math.round(100 * Math.pow(lv, 1.5));
+
+/* =========================================================
+   Date / Clock — 모든 날짜 판단은 Clock.today()를 거친다
+   ========================================================= */
+const pad = n => String(n).padStart(2, '0');
+const fmtDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseDate = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (s, n) => { const d = parseDate(s); d.setDate(d.getDate() + n); return fmtDate(d); };
+const diffDays = (a, b) => Math.round((parseDate(b) - parseDate(a)) / 864e5);
+const mondayOf = s => addDays(s, -((parseDate(s).getDay() + 6) % 7));
+const dotDate = s => s.replace(/-/g, '.');
+const Clock = {
+  now() { return new Date(Date.now() + ((S && S.debug && S.debug.dayOffset) || 0) * 864e5); },
+  today() { return fmtDate(this.now()); },
+  msToMidnight() { const n = this.now(); const m = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1); return m - n; },
+};
+const hms = ms => { const s = Math.max(0, Math.floor(ms / 1000)); return `${pad(Math.floor(s / 3600))}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`; };
+
+/* =========================================================
+   Store — localStorage (try/catch)
+   ========================================================= */
+let S = null;
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const mkQuest = (name, type, grade, stat, extra = {}) => ({ id: uid(), name, type, grade, stat, completedAt: null, ...extra });
+
+function defaultState() {
+  const t = fmtDate(new Date());
+  return {
+    version: 1,
+    player: {
+      name: '', title: TITLES[0][1], level: 1, exp: 0, storedExp: 0, rank: 'E', rankStartDate: t, rankStartTime: 0,
+      stats: { HP: 10, INT: 10, MEN: 10, STR: 10 },
+      streak: 0, streakDate: null, maxStreakInRank: 0, lastActiveDate: t, titles: [TITLES[0][1]],
+    },
+    quests: [
+      mkQuest('물 2L 마시기', 'daily', 'E', 'HP'),
+      mkQuest('러닝', 'daily', 'C', 'HP', { valueType: 'km' }),
+      mkQuest('독서', 'daily', 'D', 'INT', { valueType: 'minutes' }),
+      mkQuest('12시 전 취침', 'daily', 'C', 'MEN'),
+      mkQuest('방 정리 10분', 'daily', 'E', 'MEN'),
+      mkQuest('푸시업 30개', 'daily', 'D', 'STR'),
+      mkQuest('체중 기록하기', 'daily', 'E', 'HP', { autoComplete: 'weight' }),
+      mkQuest('주간 러닝 15km', 'weekly', 'B', 'HP', { autoComplete: 'weeklyRun', autoTarget: 15 }),
+      mkQuest('새 기술 공부 3시간', 'weekly', 'B', 'INT'),
+      mkQuest('웨이트 트레이닝 3회', 'weekly', 'B', 'STR'),
+      mkQuest('하루 동안 SNS 1시간 이하', 'once', 'A', 'MEN'),
+    ],
+    penalty: { active: false, quest: null, issuedDate: null, deadline: null },
+    body: { height: null, targetWeight: null, startWeight: null, weightLog: [] },
+    history: [],
+    debug: { dayOffset: 0 },
+  };
+}
+function normalize(s) {
+  const d = defaultState();
+  const out = { ...d, ...s };
+  out.player = { ...d.player, ...(s.player || {}) };
+  out.player.stats = { ...d.player.stats, ...((s.player && s.player.stats) || {}) };
+  out.body = { ...d.body, ...(s.body || {}) };
+  out.penalty = { ...d.penalty, ...(s.penalty || {}) };
+  out.debug = { ...d.debug, ...(s.debug || {}) };
+  if (!Array.isArray(out.quests)) out.quests = d.quests;
+  if (!Array.isArray(out.history)) out.history = [];
+  if (!Array.isArray(out.body.weightLog)) out.body.weightLog = [];
+  if (!Array.isArray(out.player.titles)) out.player.titles = [TITLES[0][1]];
+  return out;
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    return raw ? normalize(JSON.parse(raw)) : null;
+  } catch (e) { console.warn('load failed', e); return null; }
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); return true; }
+  catch (e) { console.warn('save failed', e); toast('저장에 실패했습니다. 저장 공간을 확인하세요.'); return false; }
+}
+
+/* =========================================================
+   Engine — 퀘스트 완료, EXP, 레벨업, 승급 대기
+   ========================================================= */
+const findQuest = id => S.quests.find(q => q.id === id);
+const dailyQuests = () => S.quests.filter(q => q.type === 'daily');
+function isDone(q, t = Clock.today()) {
+  if (!q.completedAt) return false;
+  if (q.type === 'daily') return q.completedAt === t;
+  if (q.type === 'weekly') return q.completedAt >= mondayOf(t);
+  return true;
+}
+// 승급 구간 레벨이고 아직 그 구간의 승급을 하지 않았으면 레벨업이 막힌다
+function isGated() { const p = S.player; const gi = GATES.indexOf(p.level); return gi >= 0 && RANKS.indexOf(p.rank) === gi; }
+function isWaiting() { return isGated() && S.player.exp >= needExp(S.player.level); }
+
+function gainExp(amount) {
+  const p = S.player; p.exp += amount;
+  let levels = 0; const titles = [];
+  for (;;) {
+    const need = needExp(p.level);
+    if (isGated()) { if (p.exp > need) { p.storedExp += p.exp - need; p.exp = need; } break; }
+    if (p.exp < need) break;
+    p.exp -= need; p.level++; levels++;
+    STATS.forEach(s => p.stats[s]++);
+    TITLES.forEach(([lv, name]) => { if (lv === p.level && !p.titles.includes(name)) { p.titles.push(name); titles.push(name); } });
+  }
+  return { levels, titles };
+}
+function updateStreak() {
+  const t = Clock.today(), p = S.player, d = dailyQuests();
+  if (!d.length || !d.every(q => isDone(q, t)) || p.streakDate === t) return;
+  p.streak = p.streakDate === addDays(t, -1) ? p.streak + 1 : 1;
+  p.streakDate = t;
+  p.maxStreakInRank = Math.max(p.maxStreakInRank, p.streak);
+}
+function completeQuest(q, value = null) {
+  const t = Clock.today(), p = S.player;
+  if (isDone(q, t)) return [];
+  const exp = GRADE_EXP[q.grade], st = GRADE_STAT[q.grade];
+  const levelFrom = p.level;
+  q.completedAt = t;
+  p.stats[q.stat] += st;
+  const res = gainExp(exp);
+  const entry = {
+    id: uid(), kind: 'quest', date: t, time: Date.now(), questId: q.id, questName: q.name, questType: q.type,
+    grade: q.grade, stat: q.stat, value, valueType: q.valueType || null,
+    expGained: exp, statGained: st, levelUps: res.levels, isPenalty: false,
+  };
+  S.history.push(entry);
+  updateStreak();
+  const events = [{ type: 'complete', entry, levelFrom, levelTo: p.level, waiting: isWaiting() }];
+  if (res.levels) events.push({ type: 'levelup', from: levelFrom, to: p.level, titles: res.titles });
+  if (q.valueType === 'km' && q.stat === 'HP') events.push(...checkWeeklyRun());
+  save();
+  return events;
+}
+function weekRunKm() {
+  const mon = mondayOf(Clock.today());
+  return S.history.filter(h => h.kind === 'quest' && h.stat === 'HP' && h.valueType === 'km' && h.date >= mon)
+    .reduce((a, h) => a + (Number(h.value) || 0), 0);
+}
+function checkWeeklyRun() {
+  const ev = [];
+  S.quests.filter(q => q.autoComplete === 'weeklyRun' && !isDone(q)).forEach(q => {
+    if (weekRunKm() >= (q.autoTarget || 15)) ev.push(...completeQuest(q));
+  });
+  return ev;
+}
+function completePenalty() {
+  const pen = S.penalty; if (!pen.active) return;
+  pen.active = false; pen.completedAt = Clock.today();
+  S.history.push({ id: uid(), kind: 'penalty', date: Clock.today(), time: Date.now(), questName: pen.quest.name, stat: pen.quest.stat, expGained: 0, statGained: 0, isPenalty: true });
+  save();
+}
+
+/* =========================================================
+   DayRoll — 날짜가 바뀌었을 때: 페널티 마감 → streak/페널티 판정 → 리셋
+   ========================================================= */
+function dayRoll() {
+  const t = Clock.today(), p = S.player, prev = p.lastActiveDate, notices = [];
+  if (!prev) { p.lastActiveDate = t; save(); return notices; }
+  if (prev >= t) return notices;
+
+  // 1) 마감이 지난 페널티 → EXP 차감 (storedExp 먼저, 최소 0, 레벨 유지)
+  const pen = S.penalty;
+  if (pen.active && pen.deadline < t) {
+    let left = Math.round(needExp(p.level) * 0.1);
+    const a = Math.min(p.storedExp, left); p.storedExp -= a; left -= a;
+    const b = Math.min(p.exp, left); p.exp -= b;
+    const lost = a + b;
+    S.history.push({ id: uid(), kind: 'deduct', date: pen.deadline, time: Date.now(), questName: pen.quest.name, stat: pen.quest.stat, expGained: -lost, statGained: 0, isPenalty: true });
+    notices.push({ type: 'deduct', amount: lost, quest: pen.quest });
+    S.penalty = { ...pen, active: false, failed: true };
+  }
+
+  // 2) streak: 어제 완료로 이어지지 않으면 0
+  if (p.streakDate !== addDays(t, -1) && p.streakDate !== t) p.streak = 0;
+
+  // 3) 마지막 접속일의 일일 퀘스트 미완료 → 페널티 1회
+  const d = dailyQuests();
+  const prevAllDone = d.length > 0 && d.every(q => q.completedAt === prev);
+  if (d.length && !prevAllDone) {
+    const pq = PENALTIES[Math.floor(Math.random() * PENALTIES.length)];
+    S.penalty = { active: true, quest: { ...pq }, issuedDate: t, deadline: t, missedDate: prev };
+    notices.push({ type: 'penalty' });
+  }
+
+  // 4) 일일 / 주간(월요일) 리셋
+  const mon = mondayOf(t);
+  S.quests.forEach(q => {
+    if (q.type === 'daily' && q.completedAt && q.completedAt < t) { q.completedAt = null; q.photo = null; }
+    if (q.type === 'weekly' && q.completedAt && q.completedAt < mon) { q.completedAt = null; q.photo = null; }
+  });
+  p.lastActiveDate = t;
+  save();
+  return notices;
+}
+
+/* =========================================================
+   Body — 체중, BMI, 평균
+   ========================================================= */
+const latestWeight = () => { const l = S.body.weightLog; return l.length ? l[l.length - 1].kg : null; };
+function avgWeight(end, days = 7) {
+  const from = addDays(end, -(days - 1));
+  const xs = S.body.weightLog.filter(w => w.date >= from && w.date <= end);
+  return xs.length ? xs.reduce((a, w) => a + w.kg, 0) / xs.length : null;
+}
+function bmi() { const h = S.body.height, w = latestWeight(); return h && w ? w / Math.pow(h / 100, 2) : null; }
+function logWeight(kg) {
+  const t = Clock.today(), b = S.body;
+  const i = b.weightLog.findIndex(w => w.date === t);
+  if (i >= 0) b.weightLog[i].kg = kg; else b.weightLog.push({ date: t, kg });
+  b.weightLog.sort((x, y) => (x.date < y.date ? -1 : 1));
+  if (b.startWeight == null || b.weightLog.length === 1) b.startWeight = b.weightLog[0].kg;
+  const wq = S.quests.find(q => q.autoComplete === 'weight' && !isDone(q));
+  const ev = wq ? completeQuest(wq) : [];
+  save();
+  return ev;
+}
+
+/* =========================================================
+   Promotion — rankStartDate 이후 기록만 집계
+   ========================================================= */
+const sum = xs => xs.reduce((a, b) => a + b, 0);
+const r1 = n => Math.round(n * 10) / 10;
+function baselineWeight(since) {
+  const pre = avgWeight(since);
+  if (pre != null) return pre;
+  const after = S.body.weightLog.find(w => w.date >= since);
+  return after ? after.kg : null;
+}
+function longestKeepRun(since, ref) {
+  if (ref == null) return 0;
+  let best = 0, run = 0, last = null;
+  S.body.weightLog.filter(w => w.date >= since).forEach(w => {
+    const ok = Math.abs(w.kg - ref) <= 1;
+    if (!ok) { run = 0; last = w.date; return; }
+    run = last && diffDays(last, w.date) === 1 && run > 0 ? run + 1 : 1;
+    last = w.date; best = Math.max(best, run);
+  });
+  return best;
+}
+function weightCond(W, since, t) {
+  const b = S.body, target = b.targetWeight || null;
+  const base = { key: 'weight', icon: 'KG' };
+  if (W.kind === 'logDays') {
+    const n = b.weightLog.filter(w => w.date >= since).length;
+    return { ...base, label: '체중 기록', desc: `체중 기록 ${W.days}일`, cur: n, goal: W.days, unit: '일', ok: n >= W.days };
+  }
+  const keep = (days, ref) => {
+    const run = longestKeepRun(since, ref);
+    return { ...base, label: '체중 유지', desc: `체중 유지 ${days}일`, cur: run, goal: days, unit: '일', ok: ref != null && run >= days,
+      note: ref != null ? `기준 ${r1(ref)}kg ±1kg 안의 기록이 연속 ${days}일` : '체중을 기록하면 집계됩니다' };
+  };
+  const startRef = target != null ? target : b.startWeight;
+  const baseW = baselineWeight(since), cur7 = avgWeight(t);
+  const cap = Math.max(0, diffDays(since, t)) / 7; // 주당 최대 1kg
+  const recognized = baseW != null && cur7 != null ? Math.max(0, Math.min(baseW - cur7, cap)) : 0;
+  if (W.kind === 'lossOrKeep') {
+    if (target != null && baseW != null && baseW > target) {
+      return { ...base, label: '체중 감량', desc: `-${W.kg}kg 감량`, cur: recognized, goal: W.kg, unit: 'kg', ok: recognized >= W.kg,
+        note: `최근 7일 평균 기준 · 주당 최대 1kg 인정 (현재 한도 ${r1(cap)}kg)` };
+    }
+    return keep(W.days, startRef);
+  }
+  if (W.kind === 'target') {
+    if (target == null || baseW == null || baseW <= target) return keep(W.keepDays, startRef);
+    const needLoss = baseW - target;
+    return { ...base, label: '목표 체중', desc: `목표 체중 ${target}kg 도달`, cur: recognized, goal: r1(needLoss), unit: 'kg', ok: recognized >= needLoss,
+      note: `최근 7일 평균 기준 · 주당 최대 1kg 인정` };
+  }
+  // targetKeep
+  const k = keep(W.days, startRef);
+  return { ...k, label: '목표 체중 유지', desc: `목표 체중 ${W.days}일 유지` };
+}
+function promoEval() {
+  const p = S.player, ri = RANKS.indexOf(p.rank);
+  if (ri >= PROMO.length) return null;
+  const R = PROMO[ri], since = p.rankStartDate, t = Clock.today();
+  // 승급 당일에는 승급 시각 이후 기록만
+  const after = h => h.date > since || (h.date === since && (h.time || 0) >= (p.rankStartTime || 0));
+  const hs = S.history.filter(h => h.kind === 'quest' && !h.isPenalty && after(h));
+  const runs = hs.filter(h => h.stat === 'HP' && h.valueType === 'km').map(h => Number(h.value) || 0);
+  const runTotal = sum(runs), runMax = runs.length ? Math.max(...runs) : 0;
+  const strCount = hs.filter(h => h.stat === 'STR').length;
+  const studyMin = sum(hs.filter(h => h.stat === 'INT' && h.valueType === 'minutes').map(h => Number(h.value) || 0));
+  const conds = [
+    { key: 'run', icon: 'RUN', label: '러닝', desc: `러닝 누적 ${R.run.total}km` + (R.run.single ? ` + 단일 ${R.run.single}km` : ''),
+      cur: runTotal, goal: R.run.total, unit: 'km', ok: runTotal >= R.run.total && (!R.run.single || runMax >= R.run.single),
+      note: R.run.single ? `단일 ${R.run.single}km 1회 필요 (최고 ${r1(runMax)}km)` : null },
+    { key: 'str', icon: 'STR', label: '근력운동', desc: `근력운동 ${R.str}회`, cur: strCount, goal: R.str, unit: '회', ok: strCount >= R.str },
+    weightCond(R.weight, since, t),
+    { key: 'streak', icon: 'DAY', label: '연속 달성', desc: `연속 달성 ${R.streak}일`, cur: p.maxStreakInRank, goal: R.streak, unit: '일', ok: p.maxStreakInRank >= R.streak,
+      note: '이번 랭크 구간의 최대 연속 달성' },
+    { key: 'study', icon: 'INT', label: '자기계발', desc: `자기계발 누적 ${R.study}시간`, cur: studyMin / 60, goal: R.study, unit: '시간', ok: studyMin >= R.study * 60 },
+  ];
+  const done = conds.filter(c => c.ok).length;
+  return { from: p.rank, to: R.to, conds, done, need: R.need, met: done >= R.need, waiting: isWaiting(), gateLevel: GATES[ri] };
+}
+function promote() {
+  const ev = promoEval();
+  if (!ev || !ev.met || !ev.waiting) return null;
+  const p = S.player, levelFrom = p.level;
+  p.rank = ev.to; p.rankStartDate = Clock.today(); p.rankStartTime = Date.now(); p.maxStreakInRank = 0;
+  const stored = p.storedExp; p.storedExp = 0;
+  const res = gainExp(stored); // exp가 MAX였으므로 최소 1레벨 상승
+  const okConds = ev.conds.filter(c => c.ok).map(c => c.desc);
+  const entry = { id: uid(), kind: 'rankup', date: Clock.today(), time: Date.now(), questName: `${ev.from}급 → ${ev.to}급 승급`, from: ev.from, to: ev.to, conds: okConds, expGained: stored, statGained: 0, levelUps: res.levels, isPenalty: false };
+  S.history.push(entry);
+  save();
+  const events = [{ type: 'rankup', entry, from: ev.from, to: ev.to, conds: okConds }];
+  if (res.levels) events.push({ type: 'levelup', from: levelFrom, to: p.level, titles: res.titles });
+  return events;
+}
+
+/* =========================================================
+   UI 공통 — 레이어(시트/모달), 토스트, 이스케이프
+   ========================================================= */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const num = n => Number(n).toLocaleString('ko-KR');
+const fmtVal = (v, vt) => vt === 'km' ? `${r1(v)}km` : vt === 'minutes' ? `${Math.round(v)}분` : '';
+let toastTimer;
+function toast(msg) { const el = $('#toast'); el.textContent = msg; el.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('on'), 2400); }
+
+function openLayer(html, { kind = 'sheet', cls = '', boxCls = '' } = {}) {
+  const el = document.createElement('div');
+  el.className = `layer ${kind} ${cls}`;
+  el.innerHTML = `<div class="backdrop"></div><div class="box ${kind === 'modal' ? 'panel bracket' : ''} ${boxCls}" role="dialog" aria-modal="true">${html}</div>`;
+  document.body.appendChild(el);
+  let resolve; const closed = new Promise(r => (resolve = r));
+  const close = () => { if (!el.isConnected) return; el.remove(); resolve(); };
+  el.querySelector('.backdrop').addEventListener('click', () => { if (!el.dataset.locked) close(); });
+  el.addEventListener('click', e => { if (e.target.closest('[data-close]')) close(); });
+  return { el, box: el.querySelector('.box'), close, closed };
+}
+
+/* =========================================================
+   Render — 화면
+   ========================================================= */
+let tab = 'status', questTab = 'daily';
+const ICON = {
+  gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+};
+const rankBadge = (r, extra = '') => `<span class="rankbadge g-${r} ${extra}"><b>${r}</b><small>RANK</small></span>`;
+
+function render() {
+  renderBanner();
+  document.querySelectorAll('#tabbar button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  const v = $('#view');
+  v.innerHTML = tab === 'status' ? viewStatus() : tab === 'quests' ? viewQuests() : viewHistory();
+  tick();
+}
+function renderBanner() {
+  const b = $('#penaltyBanner'), pen = S.penalty;
+  b.hidden = !pen.active;
+  if (pen.active) b.innerHTML = `<b>⚠ PENALTY</b><span>${esc(pen.quest.name)} · 보상 없음</span><span class="time" data-countdown="penalty"></span>`;
+}
+function todayGain() {
+  const t = Clock.today(), g = { HP: 0, INT: 0, MEN: 0, STR: 0 };
+  S.history.filter(h => h.date === t).forEach(h => {
+    if (h.kind === 'quest' && h.stat) g[h.stat] += h.statGained || 0;
+    if (h.levelUps) STATS.forEach(s => (g[s] += h.levelUps));
+  });
+  return g;
+}
+function viewStatus() {
+  const p = S.player, need = needExp(p.level), wait = isWaiting(), gated = isGated();
+  const pct = Math.min(100, (p.exp / need) * 100);
+  const maxStat = Math.max(...STATS.map(s => p.stats[s]));
+  const scale = Math.max(50, Math.ceil(maxStat / 50) * 50);
+  const gain = todayGain();
+  const w = latestWeight(), bm = bmi(), sw = S.body.startWeight;
+  const delta = w != null && sw != null ? r1(w - sw) : null;
+  const dq = dailyQuests(), dDone = dq.filter(q => isDone(q)).length;
+  const segOn = p.streak === 0 ? 0 : ((p.streak - 1) % 7) + 1;
+  const promo = promoEval();
+  const expFoot = wait
+    ? `<span>경험치 획득 일시 정지${p.storedExp ? ` · 보관 ${num(p.storedExp)}` : ''}</span><button data-act="openPromo">[승급 시험 대기]</button>`
+    : `<span>${gated ? `Lv.${p.level} 승급 구간 · ` : ''}다음 레벨까지 ${num(need - p.exp)}</span>${promo ? `<button data-act="openPromo">승급 시험 ${promo.done}/${promo.need} ›</button>` : ''}`;
+  return `
+  <header class="shead">
+    <div class="mono">Status Window</div>
+    <h1 class="glow">[ 상태창 ]</h1>
+    <button class="iconbtn right" data-act="openSettings" aria-label="설정">${ICON.gear}</button>
+  </header>
+  <section class="panel bracket">
+    <div class="lvrow">
+      <div class="lvbox">
+        <div class="mono">Level</div>
+        <div class="lvnum"><span class="n">${p.level}</span><button style="background:none;border:0;padding:0" data-act="openPromo" aria-label="랭크 ${p.rank}급, 승급 시험 보기">${rankBadge(p.rank)}</button></div>
+      </div>
+      <div class="namebox">
+        <div class="mono" style="color:var(--lq-text-mute)">Name</div>
+        <div class="name">${esc(p.name || '플레이어')}</div>
+        <div class="titlechip">칭호 <button data-act="openTitle">${esc(p.title)}</button></div>
+      </div>
+    </div>
+    <div class="exp ${wait ? 'wait' : ''}">
+      <div class="top"><span class="mono">EXP</span>
+        <span class="val">${wait ? '<span class="max">MAX</span>' : ''}${num(p.exp)} / ${num(need)}</span></div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="foot">${expFoot}</div>
+    </div>
+  </section>
+  <section class="panel bracket">
+    <div class="phead"><h3>능력치</h3><span class="mute">퀘스트 클리어 시 자동 상승</span></div>
+    ${STATS.map(s => `
+      <div class="statrow s-${s}">
+        <div class="lab"><b>${s}</b><small>${STAT_KO[s]}</small></div>
+        <div class="v">${p.stats[s]}</div>
+        <div class="bar"><i style="width:${(p.stats[s] / scale) * 100}%"></i></div>
+        <div class="gain">${gain[s] ? `▲${gain[s]}` : ''}</div>
+      </div>`).join('')}
+  </section>
+  <section class="panel" data-act="openBody" style="cursor:pointer">
+    <div class="phead"><h3>신체 정보</h3><span class="link">탭하여 체중 기록 ›</span></div>
+    <div class="bodygrid">
+      <div><div class="k">키</div><div class="v">${S.body.height ? `${S.body.height}<small>cm</small>` : '-'}</div></div>
+      <div><div class="k">체중</div><div class="v">${w != null ? `${r1(w)}<small>kg</small>` : '-'}</div></div>
+      <div><div class="k">BMI</div><div class="v">${bm != null ? bm.toFixed(1) : '-'}</div></div>
+      <div><div class="k">시작 대비</div><div class="v ${delta < 0 ? 'down' : delta > 0 ? 'up' : ''}">${delta == null ? '-' : delta === 0 ? '±0<small>kg</small>' : `${delta < 0 ? '▼' : '▲'}${Math.abs(delta).toFixed(1)}<small>kg</small>`}</div></div>
+    </div>
+  </section>
+  <div class="tiles">
+    <section class="panel">
+      <div class="sub">연속 달성</div>
+      <div class="big">${p.streak}<small>일</small></div>
+      <div class="segs">${Array.from({ length: 7 }, (_, i) => `<i class="${i < segOn ? 'on' : ''}"></i>`).join('')}</div>
+    </section>
+    <section class="panel" data-act="tab" data-tab="quests" style="cursor:pointer">
+      <div class="sub">오늘의 일일 퀘스트</div>
+      <div class="big">${dDone}<small>/ ${dq.length}</small></div>
+      <div class="bar" style="margin-top:8px;height:5px"><i style="width:${dq.length ? (dDone / dq.length) * 100 : 0}%"></i></div>
+      <div class="mute" style="margin-top:6px;font-size:11px">초기화 <span class="disp" data-countdown="midnight"></span></div>
+    </section>
+  </div>`;
+}
+function rewardText(q) { return `+${GRADE_EXP[q.grade]} EXP · ${q.stat} +${GRADE_STAT[q.grade]}`; }
+function questCard(q) {
+  const done = isDone(q);
+  const todayEntry = done && q.valueType ? [...S.history].reverse().find(h => h.questId === q.id && h.kind === 'quest' && h.date === q.completedAt) : null;
+  let tags = '';
+  if (q.valueType) tags += `<span class="tag">${q.valueType === 'km' ? 'km 입력' : '분 입력'}</span>`;
+  if (q.autoComplete === 'weight') tags += '<span class="tag">체중 입력 시 자동</span>';
+  if (q.autoComplete === 'weeklyRun') tags += `<span class="tag">이번 주 ${r1(weekRunKm())} / ${q.autoTarget || 15}km · 자동</span>`;
+  if (todayEntry) tags += `<span class="tag" style="color:var(--lq-accent)">${fmtVal(todayEntry.value, q.valueType)}</span>`;
+  if (q.type === 'once' && done) tags += `<span class="tag">${dotDate(q.completedAt)} 완료</span>`;
+  const auto = !!q.autoComplete;
+  return `<div class="qcard ${done ? 'done' : ''}">
+    <span class="gbadge g-${q.grade}">${q.grade}</span>
+    <button class="qmain" data-act="editQuest" data-id="${q.id}" aria-label="${esc(q.name)} 수정">
+      <div class="qname">${esc(q.name)}</div>
+      <div class="qmeta"><span class="sbadge s-${q.stat}">${q.stat}</span><span class="exp-r">${rewardText(q)}</span>${tags}</div>
+    </button>
+    <button class="qcheck ${done ? 'on' : ''} ${auto && !done ? 'auto' : ''}" data-act="check" data-id="${q.id}" aria-label="${done ? '완료됨' : '완료하기'}">${done ? ICON.check : auto ? 'AUTO' : ICON.check}</button>
+  </div>`;
+}
+function viewQuests() {
+  const list = S.quests.filter(q => q.type === questTab);
+  let body;
+  if (questTab === 'once') {
+    const act = list.filter(q => !isDone(q)), fin = list.filter(q => isDone(q));
+    body = (act.length ? act.map(questCard).join('') : '<div class="empty">진행 중인 돌발 퀘스트가 없습니다</div>')
+      + (fin.length ? `<div class="mono section-h">완료됨</div>${fin.map(questCard).join('')}` : '');
+  } else {
+    body = list.length ? list.map(questCard).join('') : '<div class="empty">퀘스트를 추가해 보세요</div>';
+  }
+  const dq = dailyQuests(), dDone = dq.filter(q => isDone(q)).length;
+  const sub = questTab === 'daily' ? `오늘 ${dDone}/${dq.length} 완료 · 초기화 <span data-countdown="midnight"></span>`
+    : questTab === 'weekly' ? `${dotDate(mondayOf(Clock.today()))} 주 · 월요일 초기화` : '완료하면 완료됨으로 이동';
+  return `
+  <div class="vtitle"><div><div class="mono">Quest Log</div><h1>퀘스트</h1></div>
+    <button class="btn primary" data-act="addQuest" style="min-height:38px">+ 추가</button></div>
+  <div class="seg" role="tablist">
+    ${['daily', 'weekly', 'once'].map(k => `<button role="tab" aria-selected="${questTab === k}" class="${questTab === k ? 'on' : ''}" data-act="qtab" data-k="${k}">${TYPE_KO[k]}</button>`).join('')}
+  </div>
+  <div class="sub" style="margin:-6px 0 12px">${sub}</div>
+  ${S.penalty.active ? `<div class="qcard" style="border-color:var(--lq-danger);background:var(--lq-danger-bg)">
+      <span class="gbadge" style="--g:var(--lq-danger)">!</span>
+      <button class="qmain" data-act="openPenalty"><div class="qname" style="color:#FFD6DA">${esc(S.penalty.quest.name)}</div>
+      <div class="qmeta"><span class="sbadge s-${S.penalty.quest.stat}">${S.penalty.quest.stat}</span><span style="color:#FF8C98">페널티 · 보상 없음</span></div></button>
+      <button class="qcheck" style="border-color:var(--lq-danger)" data-act="openPenalty" aria-label="페널티 보기">${ICON.check}</button></div>` : ''}
+  ${body}`;
+}
+function viewHistory() {
+  const groups = {};
+  [...S.history].sort((a, b) => b.time - a.time).forEach(h => (groups[h.date] = groups[h.date] || []).push(h));
+  const days = Object.keys(groups).sort().reverse();
+  const item = h => {
+    if (h.kind === 'deduct') return `<div class="hitem pen"><span class="gbadge" style="--g:var(--lq-danger)">!</span><div class="t"><div>페널티 미수행 · ${esc(h.questName)}</div><div class="mute">자정 마감</div></div><div class="r">EXP ${num(h.expGained)}</div></div>`;
+    if (h.kind === 'penalty') return `<div class="hitem pen"><span class="gbadge" style="--g:var(--lq-danger)">!</span><div class="t"><div>페널티 완료 · ${esc(h.questName)}</div><div class="mute">차감 면제 · 보상 없음</div></div><div class="r">±0</div></div>`;
+    if (h.kind === 'rankup') return `<div class="hitem rk">${rankBadge(h.to)}<div class="t"><div>랭크 승급 ${h.from}급 → ${h.to}급</div><div class="mute">${esc((h.conds || []).join(' · '))}</div></div><div class="r">RANK UP</div></div>`;
+    return `<div class="hitem">${h.photo ? `<img src="${h.photo}" alt="인증 사진">` : `<span class="gbadge g-${h.grade}">${h.grade}</span>`}
+      <div class="t"><div>${esc(h.questName)} ${h.value != null ? `<span class="disp" style="color:var(--lq-accent)">${fmtVal(h.value, h.valueType)}</span>` : ''}${h.debug ? ' <span class="tag">테스트</span>' : ''}</div>
+      <div class="mute"><span class="sbadge s-${h.stat}">${h.stat}</span> +${h.statGained}${h.levelUps ? ` · 레벨업 ${h.levelUps}` : ''}</div></div>
+      <div class="r">+${num(h.expGained)} EXP</div></div>`;
+  };
+  return `<div class="vtitle"><div><div class="mono">Record</div><h1>기록</h1></div></div>
+    ${days.length ? days.map(d => {
+      const exp = sum(groups[d].map(h => h.expGained || 0));
+      return `<div class="hday"><h4><span>${dotDate(d)}</span><span class="mute">${exp >= 0 ? '+' : ''}${num(exp)} EXP</span></h4>${groups[d].map(item).join('')}</div>`;
+    }).join('') : '<div class="empty">아직 완료한 퀘스트가 없습니다</div>'}`;
+}
+
+/* =========================================================
+   Popups — 완료 / 레벨업 / 랭크업 / 페널티
+   ========================================================= */
+const photoCache = {}; // entryId -> 원본 이미지 (공유 이미지용, 메모리에만)
+async function playEvents(events) {
+  for (const ev of events) {
+    if (ev.type === 'complete') await popupComplete(ev);
+    else if (ev.type === 'levelup') await popupLevelUp(ev);
+    else if (ev.type === 'rankup') await popupRankUp(ev);
+  }
+  render();
+}
+function popupComplete(ev) {
+  const h = ev.entry;
+  const L = openLayer(`
+    <div class="sysmsg">
+      <div class="mono">System Message</div>
+      <h2>[퀘스트 완료]</h2>
+      <div style="font-size:17px;font-weight:600">${TYPE_KO[h.questType]} 퀘스트: ${esc(h.questName)}</div>
+      ${h.value != null ? `<div class="sub" style="margin-top:4px">기록: ${fmtVal(h.value, h.valueType)}</div>` : ''}
+      <div class="rew">보상: <b>EXP +${h.expGained}</b> / <span style="color:${STAT_COLOR[h.stat]}">${h.stat} +${h.statGained}</span></div>
+      ${ev.levelTo > ev.levelFrom ? `<div class="lvline">▶ Lv.${ev.levelFrom} → Lv.${ev.levelTo} 레벨업!</div>` : ''}
+      ${ev.waiting ? '<div class="waitline">[승급 시험 대기] 초과 경험치는 보관됩니다</div>' : ''}
+      <div data-thumb>${h.photo ? `<img class="thumb" src="${h.photo}" alt="인증 사진">` : ''}</div>
+      <div class="btnrow"><button class="btn" data-a="photo">사진 인증</button><button class="btn primary" data-a="share">공유 이미지 만들기</button></div>
+      <button class="btn ghost block" data-close style="margin-top:8px">확인</button>
+    </div>`, { kind: 'modal' });
+  L.box.addEventListener('click', async e => {
+    const a = e.target.closest('[data-a]'); if (!a) return;
+    if (a.dataset.a === 'photo') {
+      const img = await pickPhoto(); if (!img) return;
+      photoCache[h.id] = img; h.photo = makeThumb(img);
+      const q = findQuest(h.questId); if (q) q.photo = h.photo;
+      save();
+      $('[data-thumb]', L.box).innerHTML = `<img class="thumb" src="${h.photo}" alt="인증 사진">`;
+      toast('인증 사진이 저장되었습니다');
+    } else if (a.dataset.a === 'share') {
+      openShare({ kind: 'quest', entry: h, levelFrom: ev.levelFrom, levelTo: ev.levelTo, waiting: ev.waiting, streak: S.player.streak });
+    }
+  });
+  return L.closed;
+}
+function popupLevelUp(ev) {
+  const L = openLayer(`
+    <div class="ring"></div>
+    <div class="mono" style="position:relative">System Message</div>
+    <h2 style="position:relative;margin-bottom:4px">LEVEL UP!</h2>
+    <div class="from">Lv.${ev.from} →</div>
+    <div class="lv">Lv.${ev.to}</div>
+    <p style="position:relative;margin:12px 0 0">모든 스탯이 ${ev.to - ev.from} 상승했습니다</p>
+    <div style="position:relative;display:flex;justify-content:center;gap:8px;margin-top:10px">${STATS.map(s => `<span class="sbadge s-${s}">${s} +${ev.to - ev.from}</span>`).join('')}</div>
+    ${ev.titles.length ? `<p class="sub" style="position:relative">칭호 해금: <b style="color:var(--lq-grade-s)">${ev.titles.map(esc).join(', ')}</b></p>` : ''}
+    ${isWaiting() ? '<p class="waitline" style="position:relative">[승급 시험 대기] 승급 시험을 통과해야 다음 레벨로 오를 수 있습니다</p>' : ''}
+    <button class="btn primary block" data-close style="margin-top:16px;position:relative">확인</button>`, { kind: 'modal', cls: 'levelup' });
+  return L.closed;
+}
+function popupRankUp(ev) {
+  const L = openLayer(`
+    <div style="text-align:center">
+      <div class="mono">System Message</div>
+      <div class="title">RANK UP</div>
+      <div class="badges">${rankBadge(ev.from, 'old')}<span class="arrow">▶</span>${rankBadge(ev.to, 'new')}</div>
+      <div style="font-size:18px;font-weight:700">${ev.from}급 → ${ev.to}급 승급</div>
+      <ul class="condlist">${ev.conds.map(c => `<li class="ok">${esc(c)}</li>`).join('')}</ul>
+      <div class="btnrow"><button class="btn primary" data-a="share">공유 이미지 만들기</button><button class="btn" data-close>확인</button></div>
+    </div>`, { kind: 'modal', cls: 'rankup' });
+  L.box.addEventListener('click', e => {
+    if (e.target.closest('[data-a="share"]')) openShare({ kind: 'rankup', entry: ev.entry, from: ev.from, to: ev.to, conds: ev.conds });
+  });
+  return L.closed;
+}
+function openPenalty() {
+  const pen = S.penalty; if (!pen.active) return Promise.resolve();
+  const lost = Math.round(needExp(S.player.level) * 0.1);
+  const L = openLayer(`
+    <div class="mono">Warning · Penalty Quest</div>
+    <h2>[페널티 퀘스트 발동]</h2>
+    <p class="sub" style="margin:0">${dotDate(pen.missedDate || '')} 일일 퀘스트를 모두 완료하지 못했습니다.</p>
+    <div class="pq">${esc(pen.quest.name)} <span class="sbadge s-${pen.quest.stat}">${pen.quest.stat}</span></div>
+    <div class="mono" style="letter-spacing:.1em">남은 시간</div>
+    <div class="left" data-countdown="penalty"></div>
+    <div class="warn">· 완료해도 EXP·스탯 보상은 없습니다 (차감만 면제)<br>· 오늘 자정까지 미완료 시 EXP <b>-${num(lost)}</b> 차감 (현재 레벨 필요 EXP의 10%)<br>· 레벨은 내려가지 않습니다</div>
+    <div class="btnrow"><button class="btn" data-close>나중에</button><button class="btn danger" data-a="done">완료했습니다</button></div>`, { kind: 'modal', cls: 'penalty', boxCls: 'danger' });
+  L.box.addEventListener('click', e => {
+    if (e.target.closest('[data-a="done"]')) { completePenalty(); L.close(); toast('페널티 퀘스트 완료 · 차감이 면제되었습니다'); render(); }
+  });
+  tick();
+  return L.closed;
+}
+function popupDeduct(n) {
+  return openLayer(`
+    <div class="mono">Penalty Result</div>
+    <h2 style="color:var(--lq-danger)">[페널티 미수행]</h2>
+    <p>${esc(n.quest.name)}을(를) 기한 내에 완료하지 못했습니다.</p>
+    <p class="disp" style="font-size:28px;color:var(--lq-danger);margin:8px 0">EXP -${num(n.amount)}</p>
+    <button class="btn block" data-close>확인</button>`, { kind: 'modal', cls: 'penalty', boxCls: 'danger' }).closed;
+}
+async function playNotices(notices) {
+  for (const n of notices) {
+    if (n.type === 'deduct') await popupDeduct(n);
+    if (n.type === 'penalty') await openPenalty();
+  }
+}
+
+/* =========================================================
+   Sheets — 수치 입력, 퀘스트 편집, 신체 기록, 승급 시험, 칭호, 설정
+   ========================================================= */
+function openValueSheet(q) {
+  const km = q.valueType === 'km';
+  const L = openLayer(`
+    <button class="x" data-close aria-label="닫기">×</button>
+    <div class="mono">Input</div>
+    <h2 style="font-size:var(--lq-fs-h2)">${km ? '오늘 몇 km 뛰셨나요?' : '몇 분 읽으셨나요?'}</h2>
+    <form>
+      <div class="field"><label>${esc(q.name)}</label>
+        <div class="inpwrap"><input class="inp" name="v" type="number" inputmode="decimal" step="${km ? '0.1' : '1'}" min="0" required autofocus><span class="unit">${km ? 'km' : '분'}</span></div></div>
+      <button class="btn primary block">완료</button>
+    </form>`);
+  const f = $('form', L.box);
+  setTimeout(() => f.v.focus(), 50);
+  f.addEventListener('submit', e => {
+    e.preventDefault();
+    const v = Number(f.v.value);
+    if (!(v > 0)) { toast('0보다 큰 값을 입력하세요'); return; }
+    L.close(); finishQuest(q, km ? r1(v) : Math.round(v));
+  });
+}
+function finishQuest(q, value) { const ev = completeQuest(q, value); render(); playEvents(ev); }
+
+function chipGroup(name, items, val, cls = k => '') {
+  return `<div class="chips">${items.map(([k, label]) => `<label class="${cls(k)}"><input type="radio" name="${name}" value="${k}" ${val === k ? 'checked' : ''}><span>${label}</span></label>`).join('')}</div>`;
+}
+function openQuestEditor(q) {
+  const isNew = !q;
+  q = q || { name: '', type: questTab, grade: 'E', stat: 'HP', valueType: '' };
+  const L = openLayer(`
+    <button class="x" data-close aria-label="닫기">×</button>
+    <div class="mono">${isNew ? 'New Quest' : 'Edit Quest'}</div>
+    <h2 style="font-size:var(--lq-fs-h2)">${isNew ? '퀘스트 추가' : '퀘스트 수정'}</h2>
+    <form>
+      <div class="field"><label for="qn">이름</label><input id="qn" class="inp" name="name" maxlength="40" value="${esc(q.name)}" required></div>
+      <div class="field"><label>종류</label>${chipGroup('type', [['daily', '일일'], ['weekly', '주간'], ['once', '돌발']], q.type)}</div>
+      <div class="field"><label>등급</label>${chipGroup('grade', GRADES.map(g => [g, g]), q.grade, g => `g-${g}`)}
+        <div class="mute" style="margin-top:6px" data-rew></div></div>
+      <div class="field"><label>연결 스탯</label>${chipGroup('stat', STATS.map(s => [s, `${s} ${STAT_KO[s]}`]), q.stat, s => `s-${s}`)}</div>
+      <div class="field"><label>수치 입력</label>${chipGroup('valueType', [['', '없음'], ['km', 'km'], ['minutes', '분']], q.valueType || '')}
+        ${q.autoComplete ? '<div class="mute" style="margin-top:6px">자동 완료 퀘스트입니다</div>' : ''}</div>
+      <button class="btn primary block">${isNew ? '추가' : '저장'}</button>
+      ${isNew ? '' : '<button type="button" class="btn ghost block" data-a="del" style="margin-top:8px;color:var(--lq-danger);border-color:rgba(255,59,78,.5)">삭제</button>'}
+    </form>`);
+  const f = $('form', L.box);
+  const upd = () => { const g = f.grade.value; $('[data-rew]', L.box).textContent = `보상: EXP +${GRADE_EXP[g]} · 연결 스탯 +${GRADE_STAT[g]}`; };
+  f.addEventListener('change', upd); upd();
+  f.addEventListener('submit', e => {
+    e.preventDefault();
+    const name = f.name.value.trim(); if (!name) return;
+    const data = { name, type: f.type.value, grade: f.grade.value, stat: f.stat.value, valueType: f.valueType.value || undefined };
+    if (isNew) S.quests.push(mkQuest(data.name, data.type, data.grade, data.stat, data.valueType ? { valueType: data.valueType } : {}));
+    else { Object.assign(q, data); if (!data.valueType) delete q.valueType; }
+    questTab = data.type; save(); L.close(); render(); toast(isNew ? '퀘스트가 추가되었습니다' : '저장되었습니다');
+  });
+  const del = $('[data-a="del"]', L.box);
+  if (del) del.addEventListener('click', () => {
+    if (!confirm(`'${q.name}' 퀘스트를 삭제할까요? (기록은 남습니다)`)) return;
+    S.quests = S.quests.filter(x => x.id !== q.id); save(); L.close(); render();
+  });
+}
+
+function weightChart() {
+  const t = Clock.today(), from = addDays(t, -29);
+  const pts = S.body.weightLog.filter(w => w.date >= from && w.date <= t);
+  const W = 340, H = 160, L = 34, R = 10, T = 12, B = 22;
+  if (!pts.length) return `<svg class="chart" viewBox="0 0 ${W} ${H}"><text x="${W / 2}" y="${H / 2}" fill="#5A6E8E" font-size="12" text-anchor="middle">체중을 기록하면 그래프가 표시됩니다</text></svg>`;
+  const tw = S.body.targetWeight;
+  const vals = pts.map(p => p.kg).concat(tw ? [tw] : []);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  if (hi - lo < 2) { const m = (hi + lo) / 2; lo = m - 1; hi = m + 1; }
+  lo = Math.floor(lo - .5); hi = Math.ceil(hi + .5);
+  const x = d => L + (diffDays(from, d) / 29) * (W - L - R);
+  const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  const line = pts.map(p => `${x(p.date).toFixed(1)},${y(p.kg).toFixed(1)}`).join(' ');
+  const area = `${x(pts[0].date).toFixed(1)},${H - B} ${line} ${x(pts[pts.length - 1].date).toFixed(1)},${H - B}`;
+  const ticks = [lo, (lo + hi) / 2, hi];
+  const last = pts[pts.length - 1];
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="최근 30일 체중 그래프">
+    <defs><linearGradient id="wg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3FA9FF" stop-opacity=".35"/><stop offset="1" stop-color="#3FA9FF" stop-opacity="0"/></linearGradient></defs>
+    ${ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(127,227,255,.12)"/><text x="${L - 6}" y="${y(v) + 4}" fill="#5A6E8E" font-size="10" text-anchor="end" font-family="Chakra Petch">${r1(v)}</text>`).join('')}
+    ${tw ? `<line x1="${L}" x2="${W - R}" y1="${y(tw)}" y2="${y(tw)}" stroke="#3DDC84" stroke-dasharray="4 4" stroke-opacity=".8"/><text x="${W - R}" y="${y(tw) - 4}" fill="#3DDC84" font-size="10" text-anchor="end">목표 ${tw}</text>` : ''}
+    <polygon points="${area}" fill="url(#wg)"/>
+    <polyline points="${line}" fill="none" stroke="#3FA9FF" stroke-width="2" style="filter:drop-shadow(0 0 4px #3FA9FF)"/>
+    ${pts.map(p => `<circle cx="${x(p.date)}" cy="${y(p.kg)}" r="2.2" fill="#7FE3FF"/>`).join('')}
+    <circle cx="${x(last.date)}" cy="${y(last.kg)}" r="4.5" fill="#05070F" stroke="#7FE3FF" stroke-width="2"/>
+    ${[from, addDays(from, 15), t].map((d, i) => `<text x="${x(d)}" y="${H - 6}" fill="#5A6E8E" font-size="10" text-anchor="${['start', 'middle', 'end'][i]}" font-family="Chakra Petch">${d.slice(5).replace('-', '.')}</text>`).join('')}
+  </svg>`;
+}
+function openBody() {
+  const b = S.body, t = Clock.today();
+  const todayW = (b.weightLog.find(w => w.date === t) || {}).kg;
+  const L = openLayer(`
+    <button class="x" data-close aria-label="닫기">×</button>
+    <div class="mono">Body Record</div>
+    <h2 style="font-size:var(--lq-fs-h2)">[ 신체 기록 ]</h2>
+    <form data-f="profile" class="two">
+      <div class="field"><label for="bh">키</label><div class="inpwrap"><input id="bh" class="inp" name="h" type="number" inputmode="decimal" step="0.1" min="50" max="250" value="${b.height || ''}"><span class="unit">cm</span></div></div>
+      <div class="field"><label for="bt">목표 체중</label><div class="inpwrap"><input id="bt" class="inp" name="t" type="number" inputmode="decimal" step="0.1" min="20" max="300" value="${b.targetWeight || ''}"><span class="unit">kg</span></div></div>
+    </form>
+    <form data-f="weight">
+      <div class="field"><label for="bw">체중 기록 · ${dotDate(t)} ${todayW != null ? '<span class="mute">(오늘 기록 있음 · 덮어쓰기)</span>' : ''}</label>
+        <div class="setrow"><div class="inpwrap" style="flex:1"><input id="bw" class="inp" name="w" type="number" inputmode="decimal" step="0.1" min="20" max="300" value="${todayW || ''}" required><span class="unit">kg</span></div>
+        <button class="btn primary">기록</button></div></div>
+    </form>
+    <div class="panel" style="margin-bottom:12px">
+      <div class="phead" style="margin:0"><h3>최근 30일 체중 변화</h3><span class="sub" data-delta></span></div>
+      <div data-chart>${weightChart()}</div>
+    </div>
+    <div class="bodygrid" style="grid-template-columns:repeat(3,1fr)" data-stats></div>`);
+  const paintStats = () => {
+    const w = latestWeight(), bm = bmi(), tw = S.body.targetWeight, sw = S.body.startWeight;
+    $('[data-stats]', L.box).innerHTML = `
+      <div class="panel" style="margin:0"><div class="k">현재</div><div class="v">${w != null ? `${r1(w)}<small>kg</small>` : '-'}</div></div>
+      <div class="panel" style="margin:0"><div class="k">BMI</div><div class="v">${bm != null ? bm.toFixed(1) : '-'}</div></div>
+      <div class="panel" style="margin:0"><div class="k">목표까지</div><div class="v" style="color:var(--lq-accent)">${w != null && tw ? `${r1(Math.max(0, w - tw))}<small>kg</small>` : '-'}</div></div>`;
+    const d = w != null && sw != null ? r1(w - sw) : null;
+    $('[data-delta]', L.box).textContent = d == null ? '' : `시작 ${r1(sw)}kg 대비 ${d < 0 ? '▼' : d > 0 ? '▲' : '±'}${Math.abs(d)}kg`;
+    $('[data-chart]', L.box).innerHTML = weightChart();
+  };
+  paintStats();
+  $('[data-f="profile"]', L.box).addEventListener('change', e => {
+    const f = e.currentTarget, h = Number(f.h.value), tw = Number(f.t.value);
+    S.body.height = h > 0 ? h : null; S.body.targetWeight = tw > 0 ? tw : null;
+    save(); paintStats(); render();
+  });
+  $('[data-f="weight"]', L.box).addEventListener('submit', e => {
+    e.preventDefault();
+    const kg = r1(Number(e.currentTarget.w.value));
+    if (!(kg >= 20 && kg <= 300)) { toast('체중을 확인하세요'); return; }
+    const ev = logWeight(kg);
+    paintStats(); render(); toast(`${kg}kg 기록되었습니다`);
+    if (ev.length) { L.close(); playEvents(ev); }
+  });
+}
+
+function openPromo() {
+  const ev = promoEval();
+  if (!ev) {
+    openLayer(`<button class="x" data-close aria-label="닫기">×</button><div class="mono">Rank</div><h2>최고 랭크 달성</h2><p>S급에 도달했습니다. 더 이상 승급 시험이 없습니다.</p>`);
+    return;
+  }
+  const p = S.player;
+  const canPromote = ev.met && ev.waiting;
+  const reason = !ev.waiting ? `Lv.${ev.gateLevel} 도달 후 EXP가 MAX가 되면 승급할 수 있습니다 (현재 Lv.${p.level})`
+    : !ev.met ? `조건 ${ev.need}개 이상을 완수하세요` : '승급 조건을 충족했습니다!';
+  const fmtCur = c => c.unit === 'kg' || c.unit === 'km' || c.unit === '시간' ? r1(c.cur) : Math.floor(c.cur);
+  const L = openLayer(`
+    <button class="x" data-close aria-label="닫기">×</button>
+    <div class="promohead">
+      <div class="mono">Promotion Test</div>
+      <h2 style="margin:4px 0 0;font-size:var(--lq-fs-h1)">[승급 시험]</h2>
+      <div class="badges">${rankBadge(ev.from)}<span style="color:var(--lq-accent);font-size:20px">▶</span>${rankBadge(ev.to)}</div>
+      <div class="cnt"><b>${ev.done}</b> / 5 완수 <span class="sub">· 필요 ${ev.need}개</span></div>
+      <div class="sub" style="margin-top:4px">${dotDate(p.rankStartDate)} 이후 기록 기준</div>
+    </div>
+    ${ev.conds.map(c => `
+      <div class="cond ${c.ok ? 'ok' : ''}">
+        <div class="ic">${c.icon}</div>
+        <div class="body">
+          <div class="row"><b>${esc(c.desc)}</b><span>${fmtCur(c)} / ${c.goal}${c.unit}</span></div>
+          <div class="bar"><i style="width:${Math.min(100, c.goal ? (c.cur / c.goal) * 100 : 0)}%"></i></div>
+          ${c.note ? `<div class="note">${esc(c.note)}</div>` : ''}
+        </div>
+        <div class="chk">${c.ok ? '✓' : ''}</div>
+      </div>`).join('')}
+    <p class="sub" style="text-align:center;${canPromote ? 'color:var(--lq-grade-s)' : ''}">${reason}</p>
+    <button class="btn primary block" data-a="go" ${canPromote ? '' : 'disabled'}>승급하기</button>`);
+  L.box.addEventListener('click', e => {
+    if (!e.target.closest('[data-a="go"]')) return;
+    const events = promote(); if (!events) return;
+    L.close(); render(); playEvents(events);
+  });
+}
+function openTitle() {
+  const p = S.player;
+  const L = openLayer(`
+    <button class="x" data-close aria-label="닫기">×</button>
+    <div class="mono">Title</div>
+    <h2 style="font-size:var(--lq-fs-h2)">칭호 선택</h2>
+    ${TITLES.map(([lv, name]) => {
+      const has = p.titles.includes(name);
+      return `<button class="qcard" style="width:100%;text-align:left;${has ? '' : 'opacity:.4'}" ${has ? `data-t="${esc(name)}"` : 'disabled'}>
+        <span class="mono" style="width:44px">Lv.${lv}</span><span style="flex:1">${has ? esc(name) : '???'}</span>${p.title === name ? '<span style="color:var(--lq-accent)">사용 중</span>' : ''}</button>`;
+    }).join('')}`);
+  L.box.addEventListener('click', e => {
+    const b = e.target.closest('[data-t]'); if (!b) return;
+    p.title = b.dataset.t; save(); L.close(); render();
+  });
+}
+
+function openSettings() {
+  let taps = 0;
+  const L = openLayer(`
+    <button class="x" data-close aria-label="닫기">×</button>
+    <div class="mono">Settings</div>
+    <h2 style="font-size:var(--lq-fs-h2);user-select:none" data-a="secret">설정</h2>
+    <div class="field"><label for="pn">플레이어 이름</label>
+      <div class="setrow"><input id="pn" class="inp" maxlength="16" value="${esc(S.player.name)}"><button class="btn" data-a="name">저장</button></div></div>
+    <div class="field"><label>백업</label>
+      <div class="setrow"><button class="btn" style="flex:1" data-a="export">JSON 내보내기</button><button class="btn" style="flex:1" data-a="import">JSON 불러오기</button></div></div>
+    <div class="field"><label>데이터</label><button class="btn block" data-a="reset" style="color:var(--lq-danger);border-color:rgba(255,59,78,.5)">데이터 초기화</button></div>
+    <p class="mute" style="text-align:center">${APP_NAME} · 데이터는 이 기기 브라우저에만 저장됩니다</p>
+    <div class="debug" data-debug hidden>
+      <div class="mono">Debug</div>
+      <div class="sub" data-dbginfo></div>
+      <button class="btn block" data-a="day">날짜 +1일</button>
+      <button class="btn block" data-a="gen">기록 자동 생성 (승급 조건 테스트)</button>
+      <button class="btn block" data-a="lv">레벨 → 승급 구간 직전</button>
+    </div>`);
+  const info = () => { const el = $('[data-dbginfo]', L.box); if (el) el.textContent = `기기 날짜 + ${S.debug.dayOffset}일 = ${dotDate(Clock.today())} · 랭크 시작 ${dotDate(S.player.rankStartDate)}`; };
+  L.box.addEventListener('click', async e => {
+    const a = e.target.closest('[data-a]'); if (!a) return;
+    const act = a.dataset.a;
+    if (act === 'secret') { if (++taps >= 5) { $('[data-debug]', L.box).hidden = false; info(); } return; }
+    if (act === 'name') { S.player.name = $('#pn', L.box).value.trim(); save(); render(); toast('저장되었습니다'); }
+    if (act === 'export') exportJSON();
+    if (act === 'import') $('#importInput').click();
+    if (act === 'reset') {
+      if (!confirm('모든 데이터를 초기화할까요? 되돌릴 수 없습니다. 먼저 JSON으로 백업하는 것을 권장합니다.')) return;
+      try { localStorage.removeItem(STORE_KEY); } catch (_) {}
+      S = defaultState(); save(); L.close(); tab = 'status'; render(); askName();
+    }
+    if (act === 'day') { S.debug.dayOffset++; save(); const n = dayRoll(); info(); render(); toast(`오늘은 ${dotDate(Clock.today())}`); if (n.length) { L.close(); playNotices(n).then(render); } }
+    if (act === 'gen') { debugGenerate(); info(); render(); toast('지난 14일 기록을 생성했습니다'); }
+    if (act === 'lv') { debugToGate(); render(); toast(`Lv.${S.player.level} · EXP ${S.player.exp}/${needExp(S.player.level)}`); }
+  });
+}
+function exportJSON() {
+  try {
+    const blob = new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' });
+    downloadBlob(blob, `levelup-backup-${Clock.today()}.json`);
+  } catch (e) { toast('내보내기에 실패했습니다'); }
+}
+$('#importInput').addEventListener('change', async e => {
+  const file = e.target.files[0]; e.target.value = '';
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (!data || !data.player || !Array.isArray(data.quests)) throw new Error('형식 오류');
+    if (!confirm('현재 데이터를 백업 파일 내용으로 바꿀까요?')) return;
+    S = normalize(data); save();
+    document.querySelectorAll('.layer').forEach(l => l.remove());
+    const n = dayRoll(); render(); toast('백업을 불러왔습니다'); playNotices(n).then(render);
+  } catch (err) { toast('불러오기 실패: 올바른 백업 파일이 아닙니다'); }
+});
+function debugGenerate() {
+  const t = Clock.today(), p = S.player;
+  p.rankStartDate = addDays(t, -14); p.rankStartTime = 0;
+  let kg = latestWeight() || 80;
+  for (let i = 0; i < 14; i++) {
+    const d = addDays(t, -14 + i), base = { kind: 'quest', date: d, time: parseDate(d).getTime() + 8 * 36e5 + i, levelUps: 0, isPenalty: false, debug: true };
+    S.history.push({ ...base, id: uid(), questName: '러닝', questType: 'daily', grade: 'C', stat: 'HP', value: 1.5, valueType: 'km', expGained: 0, statGained: 0 });
+    S.history.push({ ...base, id: uid(), questName: '푸시업 30개', questType: 'daily', grade: 'D', stat: 'STR', value: null, valueType: null, expGained: 0, statGained: 0 });
+    S.history.push({ ...base, id: uid(), questName: '독서', questType: 'daily', grade: 'D', stat: 'INT', value: 25, valueType: 'minutes', expGained: 0, statGained: 0 });
+    if (!S.body.weightLog.some(w => w.date === d)) S.body.weightLog.push({ date: d, kg: r1(kg) });
+    kg -= 0.1;
+  }
+  S.body.weightLog.sort((x, y) => (x.date < y.date ? -1 : 1));
+  if (S.body.startWeight == null) S.body.startWeight = S.body.weightLog[0].kg;
+  save();
+}
+function debugToGate() {
+  const p = S.player, ri = RANKS.indexOf(p.rank);
+  if (ri >= GATES.length) { toast('S급은 승급 구간이 없습니다'); return; }
+  const gl = GATES[ri];
+  if (p.level < gl) { const add = gl - p.level; p.level = gl; STATS.forEach(s => (p.stats[s] += add)); TITLES.forEach(([lv, n]) => { if (lv <= gl && !p.titles.includes(n)) p.titles.push(n); }); }
+  p.exp = needExp(p.level) - 10; p.storedExp = 0;
+  save();
+}
+
+/* =========================================================
+   Share — 사진 + 상태창 오버레이 canvas 합성
+   ========================================================= */
+function pickPhoto() {
+  return new Promise(resolve => {
+    const inp = $('#photoInput');
+    const onChange = () => {
+      inp.removeEventListener('change', onChange);
+      const file = inp.files[0]; inp.value = '';
+      if (!file) return resolve(null);
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => { toast('사진을 불러오지 못했습니다'); resolve(null); };
+      img.src = url;
+    };
+    inp.addEventListener('change', onChange);
+    inp.click();
+  });
+}
+function makeThumb(img, size = 200) {
+  const c = document.createElement('canvas'), k = size / Math.max(img.naturalWidth, img.naturalHeight);
+  c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.7);
+}
+async function ensureFonts(text) {
+  if (!document.fonts) return;
+  try {
+    await Promise.all([
+      document.fonts.load('700 80px "Pretendard Variable"', text),
+      document.fonts.load('500 40px "Pretendard Variable"', text),
+      document.fonts.load('700 80px "Chakra Petch"', '0123456789LEVUPRANK.'),
+      document.fonts.load('600 28px "JetBrains Mono"', 'SYSTEM MESSAGE LEVEL UP QUEST'),
+    ]);
+    await document.fonts.ready;
+  } catch (_) {}
+}
+const F_BODY = '"Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+const F_DISP = '"Chakra Petch", ' + F_BODY;
+const F_MONO = '"JetBrains Mono", monospace';
+function spaced(ctx, px) { if ('letterSpacing' in ctx) ctx.letterSpacing = px + 'px'; }
+function wrapLines(ctx, text, maxW) {
+  const out = []; let line = '';
+  for (const ch of text) {
+    if (ctx.measureText(line + ch).width > maxW && line) { out.push(line); line = ch.trim() ? ch : ''; }
+    else line += ch;
+  }
+  if (line) out.push(line);
+  return out;
+}
+function drawRuns(ctx, runs, x, y, align = 'center') {
+  const w = sum(runs.map(r => (ctx.fillStyle = r.c, ctx.measureText(r.t).width)));
+  let cx = align === 'center' ? x - w / 2 : x;
+  ctx.textAlign = 'left';
+  runs.forEach(r => { ctx.fillStyle = r.c; ctx.fillText(r.t, cx, y); cx += ctx.measureText(r.t).width; });
+}
+function drawBadge(ctx, r, cx, cy, s) {
+  const c = GRADE_COLOR[r];
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(cx - s / 2, cy - s * .6, s, s * 1.2);
+  ctx.lineWidth = 5;
+  if (r === 'S') { const g = ctx.createLinearGradient(cx - s / 2, cy - s * .6, cx + s / 2, cy + s * .6); g.addColorStop(0, '#FF4D5E'); g.addColorStop(1, '#FFC940'); ctx.strokeStyle = g; }
+  else ctx.strokeStyle = c;
+  ctx.shadowColor = c; ctx.shadowBlur = 24;
+  ctx.strokeRect(cx - s / 2, cy - s * .6, s, s * 1.2);
+  ctx.shadowBlur = 0; ctx.fillStyle = c; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `700 ${s * .62}px ${F_DISP}`; ctx.fillText(r, cx, cy - s * .06);
+  ctx.font = `600 ${s * .13}px ${F_MONO}`; ctx.fillText('RANK', cx, cy + s * .42);
+  ctx.restore();
+}
+function drawShare(canvas, data, img, ratio) {
+  const W = 1080, H = ratio === '9:16' ? 1920 : 1350;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  // 배경: 사진 cover + 어둡게
+  if (img) {
+    const k = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+    const iw = img.naturalWidth * k, ih = img.naturalHeight * k;
+    ctx.drawImage(img, (W - iw) / 2, (H - ih) / 2, iw, ih);
+    ctx.fillStyle = 'rgba(5,7,15,.5)'; ctx.fillRect(0, 0, W, H);
+  } else {
+    const g = ctx.createRadialGradient(W / 2, H * .3, 50, W / 2, H * .5, H);
+    g.addColorStop(0, '#0B1A33'); g.addColorStop(1, '#05070F'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(63,169,255,.07)'; ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += 54) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 0; y < H; y += 54) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  }
+  const vg = ctx.createLinearGradient(0, 0, 0, H);
+  vg.addColorStop(0, 'rgba(5,7,15,.35)'); vg.addColorStop(.45, 'rgba(5,7,15,0)'); vg.addColorStop(1, 'rgba(5,7,15,.85)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(0,0,0,.12)'; for (let y = 0; y < H; y += 4) ctx.fillRect(0, y, W, 1.5);
+
+  // 패널 내용 구성
+  const px = 90, pw = W - px * 2, inner = pw - 120;
+  const items = []; // {h, draw(y)}
+  const text = (t, font, color, h, opts = {}) => items.push({ h, draw: y => { ctx.font = font; ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; spaced(ctx, opts.ls || 0); if (opts.glow) { ctx.shadowColor = opts.glow; ctx.shadowBlur = 24; } ctx.fillText(t, W / 2, y + h * .78); ctx.shadowBlur = 0; spaced(ctx, 0); } });
+  const gap = h => items.push({ h, draw: () => {} });
+  text('SYSTEM MESSAGE', `600 30px ${F_MONO}`, '#7FE3FF', 44, { ls: 8 });
+  gap(10);
+  if (data.kind === 'quest') {
+    const h = data.entry;
+    text('[퀘스트 완료]', `800 92px ${F_BODY}`, '#FFFFFF', 112, { glow: 'rgba(63,169,255,.9)' });
+    gap(26);
+    ctx.font = `600 46px ${F_BODY}`;
+    wrapLines(ctx, `${TYPE_KO[h.questType]} 퀘스트: ${h.questName}`, inner).forEach(l => text(l, `600 46px ${F_BODY}`, '#DCEBFF', 62));
+    if (h.value != null) text(`기록: ${fmtVal(h.value, h.valueType)}`, `500 40px ${F_BODY}`, '#8FA6C8', 56);
+    gap(16);
+    items.push({ h: 64, draw: y => { ctx.font = `700 46px ${F_BODY}`; ctx.textBaseline = 'alphabetic'; drawRuns(ctx, [{ t: '보상: ', c: '#DCEBFF' }, { t: `EXP +${h.expGained}`, c: '#3FA9FF' }, { t: ' / ', c: '#5A6E8E' }, { t: `${h.stat} +${h.statGained}`, c: STAT_COLOR[h.stat] }], W / 2, y + 50); } });
+    if (data.levelTo > data.levelFrom) {
+      gap(22);
+      items.push({ h: 92, draw: y => {
+        const t = `▶ Lv.${data.levelFrom} → Lv.${data.levelTo} 레벨업!`;
+        ctx.font = `700 46px ${F_BODY}`; const tw = ctx.measureText(t).width + 70;
+        ctx.strokeStyle = 'rgba(127,227,255,.7)'; ctx.lineWidth = 3; ctx.fillStyle = 'rgba(63,169,255,.14)';
+        ctx.fillRect(W / 2 - tw / 2, y, tw, 92); ctx.strokeRect(W / 2 - tw / 2, y, tw, 92);
+        ctx.fillStyle = '#7FE3FF'; ctx.textAlign = 'center'; ctx.shadowColor = '#3FA9FF'; ctx.shadowBlur = 16; ctx.fillText(t, W / 2, y + 62); ctx.shadowBlur = 0;
+      } });
+    }
+    if (data.waiting) { gap(14); text('[승급 시험 대기]', `700 36px ${F_BODY}`, '#FFC940', 50); }
+  } else {
+    text('[랭크 승급]', `800 92px ${F_BODY}`, '#FFFFFF', 112, { glow: 'rgba(255,201,64,.8)' });
+    gap(30);
+    items.push({ h: 220, draw: y => {
+      drawBadge(ctx, data.from, W / 2 - 190, y + 110, 150);
+      drawBadge(ctx, data.to, W / 2 + 190, y + 110, 150);
+      ctx.fillStyle = '#7FE3FF'; ctx.font = `700 60px ${F_BODY}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('▶', W / 2, y + 110); ctx.textBaseline = 'alphabetic';
+    } });
+    gap(16);
+    items.push({ h: 64, draw: y => { ctx.font = `700 50px ${F_BODY}`; drawRuns(ctx, [{ t: `${data.from}급`, c: GRADE_COLOR[data.from] }, { t: '  →  ', c: '#DCEBFF' }, { t: `${data.to}급`, c: GRADE_COLOR[data.to] }], W / 2, y + 52); } });
+    gap(28);
+    text('완수한 조건', `600 30px ${F_MONO}`, '#8FA6C8', 46, { ls: 4 });
+    data.conds.forEach(c => text(`✓ ${c}`, `600 40px ${F_BODY}`, '#DCEBFF', 58));
+  }
+  const ph = sum(items.map(i => i.h)) + 140;
+  const py = Math.max(140, (H - ph) / 2 - 40);
+  // 패널
+  ctx.save();
+  ctx.fillStyle = 'rgba(10,28,60,.72)'; ctx.shadowColor = 'rgba(63,169,255,.55)'; ctx.shadowBlur = 50;
+  ctx.fillRect(px, py, pw, ph); ctx.restore();
+  ctx.strokeStyle = 'rgba(127,227,255,.45)'; ctx.lineWidth = 2; ctx.strokeRect(px, py, pw, ph);
+  ctx.fillStyle = '#7FE3FF'; const bl = 44, bt = 6;
+  [[px, py, 1, 1], [px + pw, py, -1, 1], [px, py + ph, 1, -1], [px + pw, py + ph, -1, -1]].forEach(([x, y, sx, sy]) => {
+    ctx.fillRect(sx > 0 ? x : x - bl, sy > 0 ? y : y - bt, bl, bt);
+    ctx.fillRect(sx > 0 ? x : x - bt, sy > 0 ? y : y - bl, bt, bl);
+  });
+  let y = py + 70;
+  items.forEach(i => { i.draw(y); y += i.h; });
+
+  // 하단: 날짜 · 연속 달성 · 워터마크
+  const by = H - 110;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.font = `700 48px ${F_DISP}`; ctx.fillStyle = '#FFFFFF'; ctx.fillText(dotDate(data.entry.date), 90, by);
+  ctx.font = `600 36px ${F_BODY}`;
+  if (data.kind === 'quest') drawRuns(ctx, [{ t: '연속 달성 ', c: '#8FA6C8' }, { t: `${data.streak}일`, c: '#7FE3FF' }], 90, by + 56, 'left');
+  else drawRuns(ctx, [{ t: `Lv.${S.player.level} · `, c: '#8FA6C8' }, { t: `${data.to}급`, c: GRADE_COLOR[data.to] }], 90, by + 56, 'left');
+  ctx.textAlign = 'right'; ctx.font = `600 26px ${F_MONO}`; ctx.fillStyle = 'rgba(127,227,255,.85)'; spaced(ctx, 7);
+  ctx.fillText('LEVEL UP QUEST', W - 90, by + 50); spaced(ctx, 0);
+}
+function downloadBlob(blob, name) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+function openShare(data) {
+  let ratio = '4:5', img = photoCache[data.entry.id] || null, blob = null;
+  const L = openLayer(`
+    <button class="x" data-close aria-label="닫기">×</button>
+    <div class="mono">Share</div>
+    <h2 style="font-size:var(--lq-fs-h2)">공유 이미지 만들기</h2>
+    <div class="seg" style="margin-bottom:0">
+      <button data-r="4:5" class="on">4:5 피드</button><button data-r="9:16">9:16 스토리</button>
+    </div>
+    <div class="sharewrap"><canvas aria-label="공유 이미지 미리보기"></canvas></div>
+    <p class="mute" data-msg style="text-align:center;margin:0 0 8px">${img ? '' : '사진을 선택하면 배경으로 합성됩니다'}</p>
+    <div class="btnrow" style="margin-top:0"><button class="btn" data-a="photo">${img ? '사진 변경' : '사진 선택'}</button><button class="btn primary" data-a="save" disabled>저장 · 공유</button></div>`, { kind: 'sheet' });
+  const cv = $('canvas', L.box), saveBtn = $('[data-a="save"]', L.box);
+  const textForFonts = data.kind === 'quest'
+    ? `[퀘스트 완료]${TYPE_KO[data.entry.questType]} 퀘스트: ${data.entry.questName}기록보상레벨업승급시험대기연속달성일${data.entry.stat}`
+    : `[랭크 승급]완수한조건급연속달성${data.conds.join('')}✓▶→`;
+  const redraw = async () => {
+    saveBtn.disabled = true;
+    await ensureFonts(textForFonts + '0123456789.:/+-km분시간일회');
+    drawShare(cv, data, img, ratio);
+    blob = await new Promise(r => cv.toBlob(r, 'image/png'));
+    saveBtn.disabled = !blob;
+  };
+  redraw();
+  L.box.addEventListener('click', async e => {
+    const r = e.target.closest('[data-r]');
+    if (r) { ratio = r.dataset.r; L.box.querySelectorAll('[data-r]').forEach(b => b.classList.toggle('on', b === r)); redraw(); return; }
+    const a = e.target.closest('[data-a]'); if (!a) return;
+    if (a.dataset.a === 'photo') {
+      const p = await pickPhoto(); if (!p) return;
+      img = p; photoCache[data.entry.id] = p;
+      if (data.kind === 'quest' && !data.entry.photo) { data.entry.photo = makeThumb(p); const q = findQuest(data.entry.questId); if (q) q.photo = data.entry.photo; save(); }
+      a.textContent = '사진 변경'; $('[data-msg]', L.box).textContent = '';
+      redraw();
+    }
+    if (a.dataset.a === 'save' && blob) {
+      const name = `levelup-${data.kind}-${data.entry.date}-${ratio.replace(':', 'x')}.png`;
+      const file = new File([blob], name, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: APP_NAME }); return; }
+        catch (err) { if (err && err.name === 'AbortError') return; }
+      }
+      downloadBlob(blob, name); toast('이미지를 저장했습니다');
+    }
+  });
+}
+
+/* =========================================================
+   Actions / Boot
+   ========================================================= */
+const ACT = {
+  tab: el => { tab = el.dataset.tab; render(); window.scrollTo(0, 0); },
+  qtab: el => { questTab = el.dataset.k; render(); },
+  addQuest: () => openQuestEditor(null),
+  editQuest: el => openQuestEditor(findQuest(el.dataset.id)),
+  check: el => {
+    const q = findQuest(el.dataset.id); if (!q) return;
+    if (isDone(q)) { toast('이미 완료한 퀘스트입니다'); return; }
+    if (q.autoComplete === 'weight') { openBody(); return; }
+    if (q.autoComplete === 'weeklyRun') { toast(`이번 주 러닝 ${r1(weekRunKm())} / ${q.autoTarget || 15}km · 러닝 기록 시 자동 완료`); return; }
+    if (q.valueType) { openValueSheet(q); return; }
+    finishQuest(q);
+  },
+  openBody, openPromo, openTitle, openSettings,
+  openPenalty: () => openPenalty(),
+};
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (el && ACT[el.dataset.act]) ACT[el.dataset.act](el, e);
+});
+
+function tick() {
+  document.querySelectorAll('[data-countdown]').forEach(el => {
+    if (el.dataset.countdown === 'midnight') el.textContent = hms(Clock.msToMidnight());
+    else if (S.penalty.active) el.textContent = hms(Clock.msToMidnight());
+  });
+}
+function askName() {
+  const L = openLayer(`
+    <div class="mono">System</div>
+    <h2 style="font-size:var(--lq-fs-h2)">[플레이어 등록]</h2>
+    <p class="sub" style="margin-top:0">퀘스트를 수행하면 경험치와 능력치를 얻습니다.<br>당신의 이름을 입력하세요.</p>
+    <form><input class="inp" name="n" maxlength="16" placeholder="이름" required><button class="btn primary block" style="margin-top:12px">시작하기</button></form>`, { kind: 'modal' });
+  L.el.dataset.locked = '1';
+  const f = $('form', L.box);
+  f.addEventListener('submit', e => { e.preventDefault(); S.player.name = f.n.value.trim() || '플레이어'; save(); L.close(); render(); });
+}
+function checkDay() {
+  if (Clock.today() === S.player.lastActiveDate) return;
+  const n = dayRoll(); render(); playNotices(n).then(render);
+}
+
+(function boot() {
+  const loaded = load();
+  S = loaded || defaultState();
+  if (!loaded) save();
+  const notices = dayRoll();
+  render();
+  if (!loaded || !S.player.name) askName();
+  else playNotices(notices).then(render);
+  setInterval(tick, 1000);
+  setInterval(checkDay, 15000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDay(); });
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>
