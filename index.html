@@ -140,6 +140,18 @@ button { cursor: pointer; }
 .btn.primary { background: var(--lq-primary); border-color: var(--lq-accent); color: #04101F; box-shadow: 0 0 16px rgba(63,169,255,.45); }
 .btn.danger { background: var(--lq-danger); border-color: #FF7A88; color: #fff; box-shadow: 0 0 16px rgba(255,59,78,.4); }
 .btn.ghost { background: transparent; }
+.linkbtn { display: block; margin: 10px auto 0; padding: 6px 10px; background: none; border: 0; color: var(--lq-text-mute); font: inherit; font-size: var(--lq-fs-caption); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.heat { margin-bottom: var(--lq-sp-4); }
+.heat .grid { display: grid; grid-template-columns: repeat(12, 1fr); grid-template-rows: repeat(7, auto); grid-auto-flow: column; gap: 4px; }
+.heat .c { aspect-ratio: 1; border: 1px solid var(--lq-line-soft); background: rgba(127,227,255,.04); padding: 0; cursor: pointer; }
+.heat .c.l1 { background: rgba(127,227,255,.22); } .heat .c.l2 { background: rgba(127,227,255,.42); }
+.heat .c.l3 { background: rgba(127,227,255,.65); } .heat .c.l4 { background: var(--lq-accent); box-shadow: 0 0 6px rgba(127,227,255,.5); }
+.heat .c.pen { border-color: var(--lq-danger); }
+.heat .c.today { outline: 1.5px solid #fff; outline-offset: 1px; }
+.heat .c.future { visibility: hidden; }
+.heat .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.heat .legend { display: flex; align-items: center; gap: 3px; }
+.heat .legend i { width: 10px; height: 10px; border: 1px solid var(--lq-line-soft); }
 .btn:disabled { opacity: .4; box-shadow: none; cursor: not-allowed; }
 .btn.block { width: 100%; }
 .btnrow { display: flex; gap: var(--lq-sp-2); margin-top: var(--lq-sp-4); }
@@ -482,6 +494,7 @@ function defaultState() {
     penalty: { active: false, quest: null, issuedDate: null, deadline: null },
     body: { height: null, targetWeight: null, startWeight: null, weightLog: [] },
     history: [],
+    backup: { lastDate: null, nudgeDate: null },
     debug: { dayOffset: 0 },
   };
 }
@@ -493,6 +506,7 @@ function normalize(s) {
   out.body = { ...d.body, ...(s.body || {}) };
   out.penalty = { ...d.penalty, ...(s.penalty || {}) };
   out.debug = { ...d.debug, ...(s.debug || {}) };
+  out.backup = { ...d.backup, ...(s.backup || {}) };
   if (!Array.isArray(out.quests)) out.quests = d.quests;
   if (!Array.isArray(out.history)) out.history = [];
   if (!Array.isArray(out.body.weightLog)) out.body.weightLog = [];
@@ -509,6 +523,27 @@ function load() {
 function save() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); return true; }
   catch (e) { console.warn('save failed', e); toast('저장에 실패했습니다. 저장 공간을 확인하세요.'); return false; }
+}
+
+/* 완료 되돌리기 — 가장 최근 완료 1건, 완료 직전 상태를 통째로 보관 */
+const UNDO_KEY = 'levelup-quest-undo';
+function setUndo(snap) { try { localStorage.setItem(UNDO_KEY, JSON.stringify(snap)); } catch (e) { console.warn('undo save failed', e); } }
+function clearUndo() { try { localStorage.removeItem(UNDO_KEY); } catch (_) {} }
+function getUndo() {
+  try {
+    const u = JSON.parse(localStorage.getItem(UNDO_KEY) || 'null');
+    if (!u || !Array.isArray(u.ids) || !u.ids.length || u.date !== Clock.today()) return null;
+    const tail = S.history.slice(-u.ids.length).map(h => h.id);
+    return tail.length === u.ids.length && tail.every((id, i) => id === u.ids[i]) ? u : null;
+  } catch (_) { return null; }
+}
+function canUndoQuest(q) { const u = getUndo(); return !!(u && u.questId === q.id); }
+function undoLast() {
+  const u = getUndo(); if (!u) { toast('되돌릴 수 있는 완료가 없습니다'); return false; }
+  u.ids.forEach(id => delete photoCache[id]);
+  S = normalize(JSON.parse(u.state)); save(); clearUndo();
+  render(); toast('완료를 취소했습니다');
+  return true;
 }
 
 /* =========================================================
@@ -549,6 +584,8 @@ function updateStreak() {
 function completeQuest(q, value = null, extra = {}) {
   const t = Clock.today(), p = S.player;
   if (isDone(q, t)) return [];
+  // 사용자가 직접 한 완료만 되돌리기 대상. 자동 완료(체중·주간 러닝)는 바깥 완료에 묶여 함께 되돌려짐
+  const snap = q.autoComplete ? null : JSON.stringify(S), h0 = S.history.length;
   const exp = GRADE_EXP[q.grade], st = GRADE_STAT[q.grade];
   const levelFrom = p.level;
   q.completedAt = t;
@@ -566,6 +603,7 @@ function completeQuest(q, value = null, extra = {}) {
   const events = [{ type: 'complete', entry, levelFrom, levelTo: p.level, waiting: isWaiting() }];
   if (res.levels) events.push({ type: 'levelup', from: levelFrom, to: p.level, titles: res.titles });
   if (q.valueType === 'km' && q.stat === 'HP') events.push(...checkWeeklyRun());
+  if (snap) setUndo({ questId: q.id, date: t, ids: S.history.slice(h0).map(h => h.id), state: snap });
   save();
   return events;
 }
@@ -583,6 +621,7 @@ function checkWeeklyRun() {
 }
 function completePenalty() {
   const pen = S.penalty; if (!pen.active) return;
+  clearUndo();
   pen.active = false; pen.completedAt = Clock.today();
   S.history.push({ id: uid(), kind: 'penalty', date: Clock.today(), time: Date.now(), questName: pen.quest.name, stat: pen.quest.stat, expGained: 0, statGained: 0, isPenalty: true });
   save();
@@ -595,6 +634,7 @@ function dayRoll() {
   const t = Clock.today(), p = S.player, prev = p.lastActiveDate, notices = [];
   if (!prev) { p.lastActiveDate = t; save(); return notices; }
   if (prev >= t) return notices;
+  clearUndo();
 
   // 1) 마감이 지난 페널티 → EXP 차감 (storedExp 먼저, 최소 0, 레벨 유지)
   const pen = S.penalty;
@@ -643,6 +683,7 @@ function avgWeight(end, days = 7) {
 function bmi() { const h = S.body.height, w = latestWeight(); return h && w ? w / Math.pow(h / 100, 2) : null; }
 function logWeight(kg) {
   const t = Clock.today(), b = S.body;
+  clearUndo();
   const i = b.weightLog.findIndex(w => w.date === t);
   if (i >= 0) b.weightLog[i].kg = kg; else b.weightLog.push({ date: t, kg });
   b.weightLog.sort((x, y) => (x.date < y.date ? -1 : 1));
@@ -736,6 +777,7 @@ function promote() {
   const ev = promoEval();
   if (!ev || !ev.met || !ev.waiting) return null;
   const p = S.player, levelFrom = p.level;
+  clearUndo();
   p.rank = ev.to; p.rankStartDate = Clock.today(); p.rankStartTime = Date.now(); p.maxStreakInRank = 0;
   const stored = p.storedExp; p.storedExp = 0;
   const res = gainExp(stored); // exp가 MAX였으므로 최소 1레벨 상승
@@ -786,6 +828,12 @@ function render() {
   const v = $('#view');
   v.innerHTML = tab === 'status' ? viewStatus() : tab === 'quests' ? viewQuests() : viewHistory();
   tick();
+  updateBadge();
+}
+function updateBadge() {
+  if (!('setAppBadge' in navigator)) return;
+  const n = dailyQuests().filter(q => !isDone(q)).length;
+  (n ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(() => {});
 }
 function renderBanner() {
   const b = $('#penaltyBanner'), pen = S.penalty;
@@ -920,6 +968,32 @@ function viewQuests() {
       <button class="qcheck" style="border-color:var(--lq-danger)" data-act="openPenalty" aria-label="페널티 보기">${ICON.check}</button></div>` : ''}
   ${body}`;
 }
+/* 달성 캘린더 — 일일 퀘스트 완료 기록 수 ÷ 현재 일일 퀘스트 수 (과거 퀘스트 수는 저장하지 않으므로 근사) */
+function dayStats(d) {
+  const hs = S.history.filter(h => h.date === d);
+  return {
+    done: hs.filter(h => h.kind === 'quest' && !h.isPenalty && h.questType === 'daily').length,
+    exp: sum(hs.map(h => h.expGained || 0)),
+    pen: hs.some(h => h.kind === 'deduct'),
+  };
+}
+function heatmap() {
+  const t = Clock.today(), total = dailyQuests().length || 1, start = addDays(mondayOf(t), -77);
+  const month = t.slice(0, 7);
+  let cells = '', monthDays = 0;
+  for (let i = 0; i < 84; i++) {
+    const d = addDays(start, i);
+    if (d > t) { cells += '<span class="c future"></span>'; continue; }
+    const s = dayStats(d), r = Math.min(1, s.done / total);
+    const lv = r === 0 ? 0 : r >= 1 ? 4 : r > 0.5 ? 3 : r > 0.25 ? 2 : 1;
+    if (d.startsWith(month) && s.done) monthDays++;
+    cells += `<button class="c l${lv}${s.pen ? ' pen' : ''}${d === t ? ' today' : ''}" data-act="heat" data-d="${d}" aria-label="${dotDate(d)} 일일 ${s.done}/${total}"></button>`;
+  }
+  const lg = [0, 1, 2, 3, 4].map(l => `<i class="c l${l}"></i>`).join('');
+  return `<section class="panel bracket heat"><div class="phead"><h3>달성 캘린더</h3><span class="mute">최근 12주</span></div>
+    <div class="grid">${cells}</div>
+    <div class="foot"><span class="mute">이번 달 달성일 <b style="color:var(--lq-accent)">${monthDays}</b>일</span><span class="legend mute">적음 ${lg} 많음</span></div></section>`;
+}
 function viewHistory() {
   const groups = {};
   [...S.history].sort((a, b) => b.time - a.time).forEach(h => (groups[h.date] = groups[h.date] || []).push(h));
@@ -934,6 +1008,7 @@ function viewHistory() {
       <div class="r">+${num(h.expGained)} EXP</div></div>`;
   };
   return `<div class="vtitle"><div><div class="mono">Record</div><h1>기록</h1></div></div>
+    ${heatmap()}
     ${days.length ? days.map(d => {
       const exp = sum(groups[d].map(h => h.expGained || 0));
       return `<div class="hday"><h4><span>${dotDate(d)}</span><span class="mute">${exp >= 0 ? '+' : ''}${num(exp)} EXP</span></h4>${groups[d].map(item).join('')}</div>`;
@@ -946,7 +1021,7 @@ function viewHistory() {
 const photoCache = {}; // entryId -> 원본 이미지 (공유 이미지용, 메모리에만)
 async function playEvents(events) {
   for (const ev of events) {
-    if (ev.type === 'complete') await popupComplete(ev);
+    if (ev.type === 'complete') { await popupComplete(ev); if (ev.undone) break; }
     else if (ev.type === 'levelup') await popupLevelUp(ev);
     else if (ev.type === 'rankup') await popupRankUp(ev);
   }
@@ -966,9 +1041,11 @@ function popupComplete(ev) {
       <div data-thumb>${h.photo ? `<img class="thumb" src="${h.photo}" alt="인증 사진">` : ''}</div>
       <div class="btnrow"><button class="btn" data-a="photo">사진 인증</button><button class="btn primary" data-a="share">공유 이미지 만들기</button></div>
       <button class="btn ghost block" data-close style="margin-top:8px">확인</button>
+      ${canUndoQuest({ id: h.questId }) ? '<button class="linkbtn" data-a="undo">↺ 완료 되돌리기</button>' : ''}
     </div>`, { kind: 'modal' });
   L.box.addEventListener('click', async e => {
     const a = e.target.closest('[data-a]'); if (!a) return;
+    if (a.dataset.a === 'undo') { if (undoLast()) { ev.undone = true; L.close(); } return; }
     if (a.dataset.a === 'photo') {
       const img = await pickPhoto(); if (!img) return;
       photoCache[h.id] = img; h.photo = makeThumb(img);
@@ -1140,12 +1217,12 @@ function openQuestEditor(q) {
     const data = { name, type: f.type.value, grade: f.grade.value, stat: f.stat.value, valueType: f.valueType.value || undefined };
     if (isNew) S.quests.push(mkQuest(data.name, data.type, data.grade, data.stat, data.valueType ? { valueType: data.valueType } : {}));
     else { Object.assign(q, data); if (!data.valueType) delete q.valueType; }
-    questTab = data.type; save(); L.close(); render(); toast(isNew ? '퀘스트가 추가되었습니다' : '저장되었습니다');
+    clearUndo(); questTab = data.type; save(); L.close(); render(); toast(isNew ? '퀘스트가 추가되었습니다' : '저장되었습니다');
   });
   const del = $('[data-a="del"]', L.box);
   if (del) del.addEventListener('click', () => {
     if (!confirm(`'${q.name}' 퀘스트를 삭제할까요? (기록은 남습니다)`)) return;
-    S.quests = S.quests.filter(x => x.id !== q.id); save(); L.close(); render();
+    clearUndo(); S.quests = S.quests.filter(x => x.id !== q.id); save(); L.close(); render();
   });
 }
 
@@ -1287,7 +1364,8 @@ function openSettings() {
     <div class="field"><label for="pn">플레이어 이름</label>
       <div class="setrow"><input id="pn" class="inp" maxlength="16" value="${esc(S.player.name)}"><button class="btn" data-a="name">저장</button></div></div>
     <div class="field"><label>백업</label>
-      <div class="setrow"><button class="btn" style="flex:1" data-a="export">JSON 내보내기</button><button class="btn" style="flex:1" data-a="import">JSON 불러오기</button></div></div>
+      <div class="setrow"><button class="btn" style="flex:1" data-a="export">JSON 내보내기</button><button class="btn" style="flex:1" data-a="import">JSON 불러오기</button></div>
+      <div class="mute" data-backup style="margin-top:6px">${backupText()}</div></div>
     <div class="field"><label>데이터</label><button class="btn block" data-a="reset" style="color:var(--lq-danger);border-color:rgba(255,59,78,.5)">데이터 초기화</button></div>
     <p class="mute" style="text-align:center">${APP_NAME} · 데이터는 이 기기 브라우저에만 저장됩니다</p>
     <div class="debug" data-debug hidden>
@@ -1303,11 +1381,12 @@ function openSettings() {
     const act = a.dataset.a;
     if (act === 'secret') { if (++taps >= 5) { $('[data-debug]', L.box).hidden = false; info(); } return; }
     if (act === 'name') { S.player.name = $('#pn', L.box).value.trim(); save(); render(); toast('저장되었습니다'); }
-    if (act === 'export') exportJSON();
+    if (act === 'export' && await exportJSON()) $('[data-backup]', L.box).textContent = backupText();
     if (act === 'import') $('#importInput').click();
     if (act === 'reset') {
       if (!confirm('모든 데이터를 초기화할까요? 되돌릴 수 없습니다. 먼저 JSON으로 백업하는 것을 권장합니다.')) return;
       try { localStorage.removeItem(STORE_KEY); } catch (_) {}
+      clearUndo();
       S = defaultState(); save(); L.close(); tab = 'status'; render(); askName();
     }
     if (act === 'day') { S.debug.dayOffset++; save(); const n = dayRoll(); info(); render(); toast(`오늘은 ${dotDate(Clock.today())}`); if (n.length) { L.close(); playNotices(n).then(render); } }
@@ -1315,11 +1394,39 @@ function openSettings() {
     if (act === 'lv') { debugToGate(); render(); toast(`Lv.${S.player.level} · EXP ${S.player.exp}/${needExp(S.player.level)}`); }
   });
 }
-function exportJSON() {
+async function exportJSON() {
   try {
-    const blob = new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' });
-    downloadBlob(blob, `levelup-backup-${Clock.today()}.json`);
-  } catch (e) { toast('내보내기에 실패했습니다'); }
+    const name = `levelup-backup-${Clock.today()}.json`;
+    // 파일 안에도 이번 백업 날짜를 넣어 둠 (불러온 뒤에도 마지막 백업 날짜가 맞게)
+    const blob = new Blob([JSON.stringify({ ...S, backup: { ...S.backup, lastDate: Clock.today() } }, null, 2)], { type: 'application/json' });
+    const file = new File([blob], name, { type: 'application/json' });
+    let done = false;
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: `${APP_NAME} 백업` }); done = true; }
+      catch (err) { if (err && err.name === 'AbortError') return false; }
+    }
+    if (!done) downloadBlob(blob, name);
+    S.backup.lastDate = Clock.today(); save();
+    toast('백업 파일을 저장했습니다');
+    return true;
+  } catch (e) { toast('내보내기에 실패했습니다'); return false; }
+}
+const backupText = () => S.backup.lastDate ? `마지막 백업: ${dotDate(S.backup.lastDate)}` : '아직 백업하지 않았습니다';
+const daysBetween = (a, b) => Math.round((parseDate(b) - parseDate(a)) / 864e5);
+function maybeNudgeBackup() {
+  const t = Clock.today(), b = S.backup;
+  if (!S.history.length) return;
+  if (b.lastDate && daysBetween(b.lastDate, t) < 7) return;
+  if (b.nudgeDate && daysBetween(b.nudgeDate, t) < 7) return;
+  b.nudgeDate = t; save();
+  const msg = b.lastDate ? `마지막 백업 후 ${daysBetween(b.lastDate, t)}일이 지났습니다.` : '아직 한 번도 백업하지 않았습니다.';
+  const L = openLayer(`
+    <div class="mono">System</div>
+    <h2 style="font-size:var(--lq-fs-h2)">[백업 알림]</h2>
+    <p class="sub" style="margin-top:0">${msg}<br>기록은 이 기기에만 저장되니 파일로 저장해 두세요.</p>
+    <div class="btnrow"><button class="btn" data-close>다음에</button><button class="btn primary" data-a="save">백업 저장</button></div>`, { kind: 'modal' });
+  $('[data-a=save]', L.box).addEventListener('click', async () => { if (await exportJSON()) L.close(); });
+  return L.closed;
 }
 $('#importInput').addEventListener('change', async e => {
   const file = e.target.files[0]; e.target.value = '';
@@ -1328,7 +1435,7 @@ $('#importInput').addEventListener('change', async e => {
     const data = JSON.parse(await file.text());
     if (!data || !data.player || !Array.isArray(data.quests)) throw new Error('형식 오류');
     if (!confirm('현재 데이터를 백업 파일 내용으로 바꿀까요?')) return;
-    S = normalize(data); save();
+    S = normalize(data); save(); clearUndo();
     document.querySelectorAll('.layer').forEach(l => l.remove());
     const n = dayRoll(); render(); toast('백업을 불러왔습니다'); playNotices(n).then(render);
   } catch (err) { toast('불러오기 실패: 올바른 백업 파일이 아닙니다'); }
@@ -1579,12 +1686,20 @@ const ACT = {
   editQuest: el => openQuestEditor(findQuest(el.dataset.id)),
   check: el => {
     const q = findQuest(el.dataset.id); if (!q) return;
-    if (isDone(q)) { toast('이미 완료한 퀘스트입니다'); return; }
+    if (isDone(q)) {
+      if (canUndoQuest(q) && confirm(`'${q.name}' 완료를 취소할까요?\nEXP·스탯이 원래대로 돌아갑니다.`)) undoLast();
+      else if (!canUndoQuest(q)) toast('이미 완료한 퀘스트입니다');
+      return;
+    }
     if (q.autoComplete === 'weight') { openBody(); return; }
     if (q.autoComplete === 'weeklyRun') { toast(`이번 주 러닝 ${r1(weekRunKm())} / ${q.autoTarget || 15}km · 러닝 기록 시 자동 완료`); return; }
     if (q.proof === 'screenTime') { openScreenTimeSheet(q); return; }
     if (q.valueType) { openValueSheet(q); return; }
     finishQuest(q);
+  },
+  heat: el => {
+    const d = el.dataset.d, s = dayStats(d);
+    toast(`${dotDate(d)} · 일일 ${s.done}/${dailyQuests().length} · ${s.exp >= 0 ? '+' : ''}${num(s.exp)} EXP${s.pen ? ' · 페널티 차감' : ''}`);
   },
   openBody, openPromo, openTitle, openSettings,
   openPenalty: () => openPenalty(),
@@ -1622,7 +1737,7 @@ function checkDay() {
   const notices = dayRoll();
   render();
   if (!loaded || !S.player.name) askName();
-  else playNotices(notices).then(render);
+  else playNotices(notices).then(() => { render(); return maybeNudgeBackup(); });
   setInterval(tick, 1000);
   setInterval(checkDay, 15000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDay(); });
