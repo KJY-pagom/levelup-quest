@@ -455,6 +455,7 @@ const hms = ms => { const s = Math.max(0, Math.floor(ms / 1000)); return `${pad(
 let S = null;
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const mkQuest = (name, type, grade, stat, extra = {}) => ({ id: uid(), name, type, grade, stat, completedAt: null, ...extra });
+const SNS_QUEST = '하루 동안 SNS 1시간 이하';
 
 function defaultState() {
   const t = fmtDate(new Date());
@@ -476,7 +477,7 @@ function defaultState() {
       mkQuest('주간 러닝 15km', 'weekly', 'B', 'HP', { autoComplete: 'weeklyRun', autoTarget: 15 }),
       mkQuest('새 기술 공부 3시간', 'weekly', 'B', 'INT'),
       mkQuest('웨이트 트레이닝 3회', 'weekly', 'B', 'STR'),
-      mkQuest('하루 동안 SNS 1시간 이하', 'once', 'A', 'MEN'),
+      mkQuest(SNS_QUEST, 'once', 'A', 'MEN', { proof: 'screenTime', limit: 60 }),
     ],
     penalty: { active: false, quest: null, issuedDate: null, deadline: null },
     body: { height: null, targetWeight: null, startWeight: null, weightLog: [] },
@@ -496,6 +497,7 @@ function normalize(s) {
   if (!Array.isArray(out.history)) out.history = [];
   if (!Array.isArray(out.body.weightLog)) out.body.weightLog = [];
   if (!Array.isArray(out.player.titles)) out.player.titles = [TITLES[0][1]];
+  out.quests.forEach(q => { if (q.name === SNS_QUEST && !q.proof) { q.proof = 'screenTime'; q.limit = 60; } });
   return out;
 }
 function load() {
@@ -544,7 +546,7 @@ function updateStreak() {
   p.streakDate = t;
   p.maxStreakInRank = Math.max(p.maxStreakInRank, p.streak);
 }
-function completeQuest(q, value = null) {
+function completeQuest(q, value = null, extra = {}) {
   const t = Clock.today(), p = S.player;
   if (isDone(q, t)) return [];
   const exp = GRADE_EXP[q.grade], st = GRADE_STAT[q.grade];
@@ -554,9 +556,11 @@ function completeQuest(q, value = null) {
   const res = gainExp(exp);
   const entry = {
     id: uid(), kind: 'quest', date: t, time: Date.now(), questId: q.id, questName: q.name, questType: q.type,
-    grade: q.grade, stat: q.stat, value, valueType: q.valueType || null,
+    grade: q.grade, stat: q.stat, value, valueType: extra.valueType || q.valueType || null,
     expGained: exp, statGained: st, levelUps: res.levels, isPenalty: false,
   };
+  if (extra.photo) { entry.photo = extra.photo; q.photo = extra.photo; }
+  if (extra.proofDate) entry.proofDate = extra.proofDate;
   S.history.push(entry);
   updateStreak();
   const events = [{ type: 'complete', entry, levelFrom, levelTo: p.level, waiting: isWaiting() }];
@@ -750,7 +754,7 @@ function promote() {
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const num = n => Number(n).toLocaleString('ko-KR');
-const fmtVal = (v, vt) => vt === 'km' ? `${r1(v)}km` : vt === 'minutes' ? `${Math.round(v)}분` : '';
+const fmtVal = (v, vt) => vt === 'km' ? `${r1(v)}km` : vt === 'minutes' ? `${Math.round(v)}분` : vt === 'screenMin' ? `SNS ${Math.round(v)}분` : '';
 let toastTimer;
 function toast(msg) { const el = $('#toast'); el.textContent = msg; el.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('on'), 2400); }
 
@@ -871,12 +875,13 @@ function viewStatus() {
 function rewardText(q) { return `+${GRADE_EXP[q.grade]} EXP · ${q.stat} +${GRADE_STAT[q.grade]}`; }
 function questCard(q) {
   const done = isDone(q);
-  const todayEntry = done && q.valueType ? [...S.history].reverse().find(h => h.questId === q.id && h.kind === 'quest' && h.date === q.completedAt) : null;
+  const todayEntry = done && (q.valueType || q.proof) ? [...S.history].reverse().find(h => h.questId === q.id && h.kind === 'quest' && h.date === q.completedAt) : null;
   let tags = '';
   if (q.valueType) tags += `<span class="tag">${q.valueType === 'km' ? 'km 입력' : '분 입력'}</span>`;
+  if (q.proof === 'screenTime' && !done) tags += '<span class="tag">스크린 타임 캡처 인증</span>';
   if (q.autoComplete === 'weight') tags += '<span class="tag">체중 입력 시 자동</span>';
   if (q.autoComplete === 'weeklyRun') tags += `<span class="tag">이번 주 ${r1(weekRunKm())} / ${q.autoTarget || 15}km · 자동</span>`;
-  if (todayEntry) tags += `<span class="tag" style="color:var(--lq-accent)">${fmtVal(todayEntry.value, q.valueType)}</span>`;
+  if (todayEntry) tags += `<span class="tag" style="color:var(--lq-accent)">${fmtVal(todayEntry.value, todayEntry.valueType)}</span>`;
   if (q.type === 'once' && done) tags += `<span class="tag">${dotDate(q.completedAt)} 완료</span>`;
   const auto = !!q.autoComplete;
   return `<div class="qcard ${done ? 'done' : ''}">
@@ -1062,7 +1067,48 @@ function openValueSheet(q) {
     L.close(); finishQuest(q, km ? r1(v) : Math.round(v));
   });
 }
-function finishQuest(q, value) { const ev = completeQuest(q, value); render(); playEvents(ev); }
+function finishQuest(q, value, extra) { const ev = completeQuest(q, value, extra); render(); playEvents(ev); }
+
+function openScreenTimeSheet(q) {
+  const limit = q.limit || 60;
+  const L = openLayer(`
+    <button class="x" data-close aria-label="닫기">×</button>
+    <div class="mono">Verify</div>
+    <h2 style="font-size:var(--lq-fs-h2)">SNS 사용 시간 인증</h2>
+    <p class="sub" style="margin-top:0">스크린 타임 화면을 캡처해서 첨부하세요. ${limit}분 이하면 퀘스트 완료!<br>
+      · iPhone: 설정 › 스크린 타임 › 모든 활동 보기<br>· Android: 설정 › 디지털 웰빙</p>
+    <form>
+      <div class="field"><label>인증 날짜</label>${chipGroup('day', [['y', `어제 (${dotDate(addDays(Clock.today(), -1))})`], ['t', '오늘']], 'y')}</div>
+      <div class="field"><label>SNS 사용 시간</label>
+        <div class="inpwrap"><input class="inp" name="v" type="number" inputmode="numeric" step="1" min="0" required><span class="unit">분</span></div></div>
+      <div class="field"><label>스크린 타임 캡처</label>
+        <div data-thumb class="sub" style="margin:0 0 8px">아직 첨부하지 않았습니다</div>
+        <button type="button" class="btn block" data-a="pick">캡처 첨부</button></div>
+      <button class="btn primary block" data-a="ok" disabled>인증 완료</button>
+    </form>`);
+  const f = $('form', L.box), ok = $('[data-a=ok]', L.box);
+  let img = null;
+  const sync = () => { ok.disabled = !(img && f.v.value !== '' && Number(f.v.value) >= 0); };
+  f.v.addEventListener('input', sync);
+  $('[data-a=pick]', L.box).addEventListener('click', async () => {
+    const p = await pickPhoto({ gallery: true }); if (!p) return;
+    img = p;
+    $('[data-thumb]', L.box).innerHTML = `<img class="thumb" src="${makeThumb(p)}" alt="스크린 타임 캡처">`;
+    $('[data-a=pick]', L.box).textContent = '캡처 변경';
+    sync();
+  });
+  f.addEventListener('submit', e => {
+    e.preventDefault();
+    const v = Math.round(Number(f.v.value));
+    if (!img || !(v >= 0)) return;
+    if (v > limit) { toast(`SNS ${v}분 — ${limit}분 초과라 이번엔 실패! 다른 날 다시 도전하세요`); return; }
+    const day = f.day.value === 't' ? Clock.today() : addDays(Clock.today(), -1);
+    L.close();
+    const ev = completeQuest(q, v, { valueType: 'screenMin', photo: makeThumb(img), proofDate: day });
+    const entry = ev[0] && ev[0].entry; if (entry) photoCache[entry.id] = img;
+    render(); playEvents(ev);
+  });
+}
 
 function chipGroup(name, items, val, cls = k => '') {
   return `<div class="chips">${items.map(([k, label]) => `<label class="${cls(k)}"><input type="radio" name="${name}" value="${k}" ${val === k ? 'checked' : ''}><span>${label}</span></label>`).join('')}</div>`;
@@ -1315,9 +1361,10 @@ function debugToGate() {
 /* =========================================================
    Share — 사진 + 상태창 오버레이 canvas 합성
    ========================================================= */
-function pickPhoto() {
+function pickPhoto({ gallery = false } = {}) {
   return new Promise(resolve => {
     const inp = $('#photoInput');
+    if (gallery) inp.removeAttribute('capture'); else inp.setAttribute('capture', 'environment');
     const onChange = () => {
       inp.removeEventListener('change', onChange);
       const file = inp.files[0]; inp.value = '';
@@ -1535,6 +1582,7 @@ const ACT = {
     if (isDone(q)) { toast('이미 완료한 퀘스트입니다'); return; }
     if (q.autoComplete === 'weight') { openBody(); return; }
     if (q.autoComplete === 'weeklyRun') { toast(`이번 주 러닝 ${r1(weekRunKm())} / ${q.autoTarget || 15}km · 러닝 기록 시 자동 완료`); return; }
+    if (q.proof === 'screenTime') { openScreenTimeSheet(q); return; }
     if (q.valueType) { openValueSheet(q); return; }
     finishQuest(q);
   },
