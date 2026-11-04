@@ -372,6 +372,13 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 
 /* 신체 기록 그래프 */
 .chart { width: 100%; height: auto; display: block; margin-top: var(--lq-sp-2); }
+.glegend { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 10px; margin-top: var(--lq-sp-2); font-size: var(--lq-fs-caption); color: var(--lq-text-sub); }
+.glegend i { display: inline-block; width: 10px; height: 3px; margin-right: 4px; vertical-align: middle; }
+.glegend small { color: var(--lq-accent); }
+.gsum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: var(--lq-sp-4); }
+.gsum > div { border: 1px solid var(--lq-line-soft); background: var(--lq-surface); padding: 10px; text-align: center; }
+.gsum .k { font-size: var(--lq-fs-caption); color: var(--lq-text-mute); }
+.gsum .v { font-family: var(--lq-font-display); font-size: 18px; font-weight: 700; margin-top: 2px; }
 
 /* 공유 */
 .sharewrap { display: flex; justify-content: center; margin: var(--lq-sp-3) 0; }
@@ -888,7 +895,7 @@ function viewStatus() {
     </div>
   </section>
   <section class="panel bracket">
-    <div class="phead"><h3>능력치</h3><span class="mute">퀘스트 클리어 시 자동 상승</span></div>
+    <div class="phead"><h3>능력치</h3><button class="link" data-act="openGrowth" style="background:none;border:0;padding:0">성장 그래프 ›</button></div>
     ${STATS.map(s => `
       <div class="statrow s-${s}">
         <div class="lab"><b>${s}</b><small>${STAT_KO[s]}</small></div>
@@ -1253,6 +1260,85 @@ function weightChart() {
     ${[from, addDays(from, 15), t].map((d, i) => `<text x="${x(d)}" y="${H - 6}" fill="#5A6E8E" font-size="10" text-anchor="${['start', 'middle', 'end'][i]}" font-family="Chakra Petch">${d.slice(5).replace('-', '.')}</text>`).join('')}
   </svg>`;
 }
+
+/* 성장 그래프 — 기록에서 날짜별 값을 되짚어 계산. 레벨·능력치는 현재 값에서 거꾸로 빼서 끝점이 항상 현재와 일치 */
+function growthSeries(from, to) {
+  const p = S.player, hs = S.history.filter(h => h.date <= to);
+  const after = d => hs.filter(h => h.date > d);
+  const lvUps = h => (h.kind === 'quest' || h.kind === 'rankup') ? (h.levelUps || 0) : 0;
+  const expOf = h => (h.kind === 'quest' || h.kind === 'deduct') ? (h.expGained || 0) : 0;
+  const pts = [];
+  for (let d = addDays(from, -1); d <= to; d = addDays(d, 1)) {
+    const later = after(d), ups = sum(later.map(lvUps));
+    const stats = {};
+    STATS.forEach(s => { stats[s] = p.stats[s] - ups - sum(later.filter(h => h.kind === 'quest' && h.stat === s).map(h => h.statGained || 0)); });
+    pts.push({ d, lv: Math.max(1, p.level - ups), exp: sum(hs.filter(h => h.date <= d).map(expOf)), stats });
+  }
+  const ranks = S.history.filter(h => h.kind === 'rankup' && h.date >= from && h.date <= to).map(h => ({ d: h.date, to: h.to }));
+  const base = pts.shift(); // 기간 시작 전날 끝 값 — 요약의 증가량 기준
+  return { pts, ranks, base };
+}
+function lineChart({ from, to, lines, ranks = [], label, H = 150, intY = false }) {
+  const W = 340, L = 38, R = 10, T = 14, B = 22, span = Math.max(1, diffDays(from, to));
+  const vals = lines.flatMap(l => l.pts.map(p => p[1]));
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  if (hi - lo < (intY ? 2 : 1)) { lo = Math.max(0, lo - 1); hi = hi + 1; }
+  const x = d => L + (diffDays(from, d) / span) * (W - L - R);
+  const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  const ticks = [lo, (lo + hi) / 2, hi].map(v => intY ? Math.round(v) : v);
+  const pathOf = (pts, step) => pts.map((p, i) => {
+    const X = x(p[0]).toFixed(1), Y = y(p[1]).toFixed(1);
+    if (!i) return `M${X},${Y}`;
+    return step ? `H${X}V${Y}` : `L${X},${Y}`;
+  }).join('');
+  const mid = addDays(from, Math.round(span / 2));
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}">
+    ${ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(127,227,255,.12)"/><text x="${L - 6}" y="${y(v) + 4}" fill="#5A6E8E" font-size="10" text-anchor="end" font-family="Chakra Petch">${num(Math.round(v))}</text>`).join('')}
+    ${ranks.map(r => `<line x1="${x(r.d)}" x2="${x(r.d)}" y1="${T}" y2="${H - B}" stroke="${GRADE_COLOR[r.to]}" stroke-dasharray="3 3"/><text x="${x(r.d) + 3}" y="${T + 8}" fill="${GRADE_COLOR[r.to]}" font-size="10" font-family="Chakra Petch">${r.to}</text>`).join('')}
+    ${lines.map(l => `${l.area ? `<path d="${pathOf(l.pts, l.step)}V${H - B}H${x(l.pts[0][0])}Z" fill="${l.color}" fill-opacity=".12"/>` : ''}<path d="${pathOf(l.pts, l.step)}" fill="none" stroke="${l.color}" stroke-width="2" style="filter:drop-shadow(0 0 3px ${l.color})"/>
+      <circle cx="${x(l.pts[l.pts.length - 1][0])}" cy="${y(l.pts[l.pts.length - 1][1])}" r="3.5" fill="#05070F" stroke="${l.color}" stroke-width="2"/>`).join('')}
+    ${[from, mid, to].map((d, i) => `<text x="${x(d)}" y="${H - 6}" fill="#5A6E8E" font-size="10" text-anchor="${['start', 'middle', 'end'][i]}" font-family="Chakra Petch">${d.slice(5).replace('-', '.')}</text>`).join('')}
+  </svg>`;
+}
+function openGrowth() {
+  let view = 'level', range = 30;
+  const L = openLayer(`
+    <button class="x" data-close aria-label="닫기">×</button>
+    <div class="mono">Growth</div>
+    <h2 style="font-size:var(--lq-fs-h2)">성장 그래프</h2>
+    <div class="seg" data-g="view"><button data-v="level" class="on">레벨·EXP</button><button data-v="stats">능력치</button></div>
+    <div class="seg" data-g="range" style="margin-top:-8px"><button data-v="30" class="on">30일</button><button data-v="90">90일</button><button data-v="all">전체</button></div>
+    <div data-body></div>`);
+  const draw = () => {
+    const to = Clock.today();
+    const first = S.history.length ? S.history.map(h => h.date).sort()[0] : to;
+    const from = range === 'all' ? (first < to ? first : addDays(to, -6)) : addDays(to, -(range - 1));
+    const { pts, ranks, base: a } = growthSeries(from, to), z = pts[pts.length - 1];
+    let html;
+    if (view === 'level') {
+      html = `<div class="phead" style="margin:0"><h3>레벨</h3><span class="mute">Lv.${a.lv} → Lv.${z.lv}</span></div>
+        ${lineChart({ from, to, intY: true, label: '레벨 변화 그래프', ranks, lines: [{ color: '#7FE3FF', step: true, pts: pts.map(p => [p.d, p.lv]) }] })}
+        <div class="phead" style="margin:var(--lq-sp-4) 0 0"><h3>누적 EXP</h3><span class="mute">${num(z.exp)} EXP</span></div>
+        ${lineChart({ from, to, H: 130, label: '누적 경험치 그래프', lines: [{ color: '#3FA9FF', area: true, pts: pts.map(p => [p.d, p.exp]) }] })}`;
+    } else {
+      html = `${lineChart({ from, to, intY: true, H: 190, label: '능력치 변화 그래프', ranks, lines: STATS.map(s => ({ color: STAT_COLOR[s], pts: pts.map(p => [p.d, p.stats[s]]) })) })}
+        <div class="glegend">${STATS.map(s => `<span><i style="background:${STAT_COLOR[s]}"></i><b>${s}</b> ${z.stats[s]} <small>${z.stats[s] - a.stats[s] ? `▲${z.stats[s] - a.stats[s]}` : ''}</small></span>`).join('')}</div>`;
+    }
+    const best = STATS.map(s => [s, z.stats[s] - a.stats[s]]).sort((p, q) => q[1] - p[1])[0];
+    html += `<div class="gsum"><div><div class="k">레벨 상승</div><div class="v">+${z.lv - a.lv}</div></div>
+      <div><div class="k">획득 EXP</div><div class="v">${z.exp - a.exp >= 0 ? '+' : ''}${num(z.exp - a.exp)}</div></div>
+      <div><div class="k">최고 성장</div><div class="v" style="color:${best[1] ? STAT_COLOR[best[0]] : 'inherit'}">${best[1] ? `${best[0]} +${best[1]}` : '-'}</div></div></div>`;
+    $('[data-body]', L.box).innerHTML = html;
+  };
+  L.box.addEventListener('click', e => {
+    const b = e.target.closest('.seg button'); if (!b) return;
+    const g = b.parentElement.dataset.g;
+    b.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    if (g === 'view') view = b.dataset.v; else range = b.dataset.v === 'all' ? 'all' : Number(b.dataset.v);
+    draw();
+  });
+  draw();
+}
 function openBody() {
   const b = S.body, t = Clock.today();
   const todayW = (b.weightLog.find(w => w.date === t) || {}).kg;
@@ -1412,14 +1498,13 @@ async function exportJSON() {
   } catch (e) { toast('내보내기에 실패했습니다'); return false; }
 }
 const backupText = () => S.backup.lastDate ? `마지막 백업: ${dotDate(S.backup.lastDate)}` : '아직 백업하지 않았습니다';
-const daysBetween = (a, b) => Math.round((parseDate(b) - parseDate(a)) / 864e5);
 function maybeNudgeBackup() {
   const t = Clock.today(), b = S.backup;
   if (!S.history.length) return;
-  if (b.lastDate && daysBetween(b.lastDate, t) < 7) return;
-  if (b.nudgeDate && daysBetween(b.nudgeDate, t) < 7) return;
+  if (b.lastDate && diffDays(b.lastDate, t) < 7) return;
+  if (b.nudgeDate && diffDays(b.nudgeDate, t) < 7) return;
   b.nudgeDate = t; save();
-  const msg = b.lastDate ? `마지막 백업 후 ${daysBetween(b.lastDate, t)}일이 지났습니다.` : '아직 한 번도 백업하지 않았습니다.';
+  const msg = b.lastDate ? `마지막 백업 후 ${diffDays(b.lastDate, t)}일이 지났습니다.` : '아직 한 번도 백업하지 않았습니다.';
   const L = openLayer(`
     <div class="mono">System</div>
     <h2 style="font-size:var(--lq-fs-h2)">[백업 알림]</h2>
@@ -1701,7 +1786,7 @@ const ACT = {
     const d = el.dataset.d, s = dayStats(d);
     toast(`${dotDate(d)} · 일일 ${s.done}/${dailyQuests().length} · ${s.exp >= 0 ? '+' : ''}${num(s.exp)} EXP${s.pen ? ' · 페널티 차감' : ''}`);
   },
-  openBody, openPromo, openTitle, openSettings,
+  openBody, openPromo, openTitle, openSettings, openGrowth,
   openPenalty: () => openPenalty(),
 };
 document.addEventListener('click', e => {
